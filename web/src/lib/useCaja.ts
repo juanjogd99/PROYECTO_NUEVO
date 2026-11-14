@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { efectivoDelDia, type Caja, type Movimiento, type Precio, type Rol } from './types'
-import { abrirCaja, borrar, cerrarCaja, getSheetsUrl, guardar, guardarPrecios, listar, reabrirCaja, SheetsError, type Datos, type Hoja } from './sheets'
-import { demoCajas, demoMovimientos, demoPrecios, demoPrivados } from './demoData'
+import { efectivoDelDia, type Caja, type Movimiento, type Precio, type Rol, type Variante } from './types'
+import { abrirCaja, borrar, cerrarCaja, getSheetsUrl, guardar, guardarCatalogo, guardarPrecios, listar, reabrirCaja, SheetsError, type Datos, type Hoja } from './sheets'
+import { demoCajas, demoCatalogo, demoMovimientos, demoPrecios, demoPrivados } from './demoData'
 import { todayISO } from './format'
 
 export type SyncState = 'demo' | 'cargando' | 'sincronizado' | 'guardando' | 'sin-conexion' | 'error'
@@ -10,11 +10,12 @@ type Op =
   | { kind: 'upsert'; hoja: Hoja; row: Movimiento }
   | { kind: 'delete'; hoja: Hoja; id: string }
   | { kind: 'precios'; list: Precio[] }
+  | { kind: 'catalogo'; list: Variante[] }
   | { kind: 'apertura'; caja: Caja }
   | { kind: 'cierre'; caja: Caja }
   | { kind: 'reabrir'; fecha: string }
 
-const K = { cache: 'tm.cache-equipo', queue: 'tm.queue', demo: 'tm.demo-ejemplo', demoPriv: 'tm.demo-privado', demoPrecios: 'tm.demo-precios', demoCajas: 'tm.demo-cajas' }
+const K = { cache: 'tm.cache-equipo', queue: 'tm.queue', demo: 'tm.demo-ejemplo', demoPriv: 'tm.demo-privado', demoPrecios: 'tm.demo-precios', demoCajas: 'tm.demo-cajas', demoCatalogo: 'tm.demo-catalogo' }
 const read = <T,>(key: string, fallback: T): T => {
   try {
     const v = localStorage.getItem(key)
@@ -37,9 +38,10 @@ export const nuevoId = () => `M-${Date.now().toString(36).toUpperCase()}-${Math.
 export const DEMO_PINES: Record<string, Rol> = { '1234': 'equipo', '2026': 'duena' }
 
 function aplicar(d: Datos, ops: Op[]): Datos {
-  let { rows, privados, precios, cajas } = d
+  let { rows, privados, precios, cajas, catalogo } = d
   for (const op of ops) {
     if (op.kind === 'precios') precios = op.list
+    else if (op.kind === 'catalogo') catalogo = op.list
     else if (op.kind === 'apertura' || op.kind === 'cierre') cajas = [op.caja, ...cajas.filter((c) => c.fecha !== op.caja.fecha)]
     else if (op.kind === 'reabrir') cajas = cajas.map((c) => (c.fecha === op.fecha ? reabierta(c) : c))
     else {
@@ -49,7 +51,7 @@ function aplicar(d: Datos, ops: Op[]): Datos {
       else rows = next
     }
   }
-  return { ...d, rows, privados, precios, cajas }
+  return { ...d, rows, privados, precios, cajas, catalogo }
 }
 
 const reabierta = (c: Caja): Caja => ({ ...c, estado: 'abierta', ventasEfectivo: 0, gastosEfectivo: 0, esperado: 0, contado: 0, diferencia: 0, cerro: '', cierre: '' })
@@ -67,7 +69,7 @@ export function useCaja(pin: string, rol: Rol) {
   const url = getSheetsUrl()
   const demo = !url
   const esDuena = rol === 'duena'
-  const [datos, setDatos] = useState<Datos>({ rol, rows: [], privados: [], precios: [], cajas: [] })
+  const [datos, setDatos] = useState<Datos>({ rol, rows: [], privados: [], precios: [], cajas: [], catalogo: [] })
   const [state, setState] = useState<SyncState>(demo ? 'demo' : 'cargando')
   const [error, setError] = useState('')
   const [lastSync, setLastSync] = useState<Date | null>(null)
@@ -100,6 +102,7 @@ export function useCaja(pin: string, rol: Rol) {
         let n = 1
         if (head.kind === 'delete') await borrar(url, pin, [head.id], head.hoja)
         else if (head.kind === 'precios') await guardarPrecios(url, pin, head.list)
+        else if (head.kind === 'catalogo') await guardarCatalogo(url, pin, head.list)
         else if (head.kind === 'apertura') await abrirCaja(url, pin, head.caja)
         else if (head.kind === 'cierre') await cerrarCaja(url, pin, head.caja)
         else if (head.kind === 'reabrir') await reabrirCaja(url, pin, head.fecha)
@@ -144,6 +147,7 @@ export function useCaja(pin: string, rol: Rol) {
         privados: esDuena ? (read<Movimiento[] | null>(K.demoPriv, null) ?? demoPrivados()) : [],
         precios: read<Precio[] | null>(K.demoPrecios, null) ?? demoPrecios,
         cajas: (read<Caja[] | null>(K.demoCajas, null) ?? demoCajas(rows)).filter((c) => esDuena || c.fecha === hoy),
+        catalogo: read<Variante[] | null>(K.demoCatalogo, null) ?? demoCatalogo,
       })
       return
     }
@@ -176,6 +180,7 @@ export function useCaja(pin: string, rol: Rol) {
         const next = aplicar(prev, [op])
         if (demo) {
           if (op.kind === 'precios') write(K.demoPrecios, next.precios)
+          else if (op.kind === 'catalogo') write(K.demoCatalogo, next.catalogo)
           else if (op.kind === 'apertura' || op.kind === 'cierre' || op.kind === 'reabrir') {
             const all = read<Caja[] | null>(K.demoCajas, null) ?? demoCajas(read<Movimiento[] | null>(K.demo, null) ?? demoMovimientos())
             write(K.demoCajas, aplicar({ ...prev, cajas: all }, [op]).cajas)
@@ -197,14 +202,14 @@ export function useCaja(pin: string, rol: Rol) {
   )
 
   const resetDemo = useCallback(() => {
-    for (const k of [K.demo, K.demoPriv, K.demoPrecios, K.demoCajas])
+    for (const k of [K.demo, K.demoPriv, K.demoPrecios, K.demoCajas, K.demoCatalogo])
       try {
         localStorage.removeItem(k)
       } catch {
         /* noop */
       }
     const rows = demoMovimientos()
-    setDatos({ rol, rows, privados: demoPrivados(), precios: demoPrecios, cajas: demoCajas(rows) })
+    setDatos({ rol, rows, privados: demoPrivados(), precios: demoPrecios, cajas: demoCajas(rows), catalogo: demoCatalogo })
   }, [rol])
 
   return {
@@ -218,6 +223,7 @@ export function useCaja(pin: string, rol: Rol) {
     save: useCallback((row: Movimiento, hoja: Hoja = 'movimientos') => commit({ kind: 'upsert', hoja, row }), [commit]),
     remove: useCallback((id: string, hoja: Hoja = 'movimientos') => commit({ kind: 'delete', hoja, id }), [commit]),
     savePrecios: useCallback((list: Precio[]) => commit({ kind: 'precios', list }), [commit]),
+    saveCatalogo: useCallback((list: Variante[]) => commit({ kind: 'catalogo', list }), [commit]),
     /** Abre la caja de hoy con la base en efectivo. */
     abrir: useCallback(
       (base: number, abrio: string, nota = '') =>

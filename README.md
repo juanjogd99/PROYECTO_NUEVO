@@ -2,6 +2,7 @@
 
 Página web + caja conectada a Google Sheets.
 
+- **Catálogo con inventario:** cada tela tiene modelos y colores con su estado (disponible, pocas unidades, agotado). La dueña lo edita en la Caja → Catálogo y la página pública lo muestra en cada categoría (sin precios), leyendo la pestaña CATALOGO.
 - **Página de presentación** (`/`): la tienda, la colección con precios reales de referencia, cortinas a la medida, contacto.
 - **Caja** (`/#caja`), con dos claves:
   - **Apertura y cierre:** cada mañana se **abre la caja** con la base en efectivo (sin abrirla el equipo no puede facturar) y en la noche se **cierra** contando billetes y monedas: la app dice si cuadra, sobra o falta. Queda en la pestaña CAJAS.
@@ -92,6 +93,7 @@ El Apps Script decide qué entrega a cada PIN, así que la privacidad no depende
 | Abrir y cerrar la caja del día | ✅ | ✅ y reabrirla |
 | Historial de cierres (faltantes y sobrantes) | ❌ | ✅ |
 | Lista de precios | 👁️ solo consultar | ✅ editar |
+| Catálogo (modelos, colores, disponible / pocas / agotado) | 👁️ consultar | ✅ editar; se publica en la página |
 
 - Comparte el Google Sheet **solo con la dueña**; el equipo entra por la página.
 - Lo de la dueña no se guarda en el navegador, así que no queda en el computador de la tienda al pulsar **Salir**.

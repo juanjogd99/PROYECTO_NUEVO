@@ -73,3 +73,22 @@ export function efectivoDelDia(rows: Movimiento[], fecha: string) {
   }
   return { ventas, gastos }
 }
+
+/** Estado de inventario de un color. */
+export type Stock = 'disponible' | 'pocas' | 'agotado'
+export const STOCK: { id: Stock; label: string }[] = [
+  { id: 'disponible', label: 'Disponible' },
+  { id: 'pocas', label: 'Pocas unidades' },
+  { id: 'agotado', label: 'Agotado' },
+]
+
+/** Una fila de la pestaña CATALOGO: un color de un modelo de una tela. */
+export interface Variante {
+  categoria: string // slug de la categoría (instituciones, trajes, cortinas…)
+  tela: string // Yakar
+  modelo: string // Damasco
+  color: string // Vino
+  hex: string // #6d1f2a (para la muestra)
+  estado: Stock
+  nota: string
+}

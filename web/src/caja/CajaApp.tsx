@@ -11,6 +11,7 @@ import Hoy from './Hoy'
 import Precios from './Precios'
 import Privado from './Privado'
 import { HistorialCajas } from './CajaDia'
+import Catalogo from './Catalogo'
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
@@ -161,10 +162,11 @@ const SYNC: Record<SyncState, { label: string; dot: string }> = {
   error: { label: 'Error de sincronización', dot: 'bg-bad' },
 }
 
-type Tab = 'hoy' | 'balance' | 'movimientos' | 'privado' | 'precios' | 'ajustes'
+type Tab = 'hoy' | 'balance' | 'movimientos' | 'privado' | 'catalogo' | 'precios' | 'ajustes'
 const TABS: Record<Rol, { key: Tab; label: string; corto?: string }[]> = {
   equipo: [
     { key: 'hoy', label: 'Hoy' },
+    { key: 'catalogo', label: 'Catálogo' },
     { key: 'precios', label: 'Precios' },
   ],
   duena: [
@@ -172,6 +174,7 @@ const TABS: Record<Rol, { key: Tab; label: string; corto?: string }[]> = {
     { key: 'hoy', label: 'Caja diaria', corto: 'Caja' },
     { key: 'movimientos', label: 'Movimientos', corto: 'Movim.' },
     { key: 'privado', label: 'Mis cuentas', corto: 'Cuentas' },
+    { key: 'catalogo', label: 'Catálogo' },
     { key: 'precios', label: 'Precios' },
     { key: 'ajustes', label: 'Ajustes' },
   ],
@@ -185,6 +188,7 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
   const [tab, setTab] = useState<Tab>(tabs[0].key)
   const [form, setForm] = useState<{ open: boolean; initial: Movimiento | null; modo: Modo }>({ open: false, initial: null, modo: 'caja' })
   const [toast, setToast] = useState('')
+  const [mas, setMas] = useState(false)
   const lista = useMemo(() => periodos([...caja.rows, ...caja.privados]), [caja.rows, caja.privados])
   const [pk, setPk] = useState('todo')
   const periodo = lista.find((p) => p.key === pk) ?? lista[0]
@@ -238,7 +242,9 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
   }, [caja.error, caja.state, flash])
 
   const s = SYNC[caja.state]
-  const movil = tabs.filter((t) => t.key !== 'ajustes')
+  // móvil: hasta 4 pestañas en la barra; el resto va en "Más"
+  const movil = tabs.slice(0, 4)
+  const extra = tabs.slice(4)
   const conPeriodo = tab === 'balance' || tab === 'movimientos' || tab === 'privado'
 
   return (
@@ -251,25 +257,21 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
           <span className={`hidden rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase sm:inline ${esDuena ? 'bg-indigo text-linen' : 'bg-linen-2 text-ink-2'}`}>{esDuena ? 'Dueña' : 'Caja'}</span>
           <nav className="ml-2 hidden gap-1 md:flex">
             {tabs.map((t) => (
-              <button key={t.key} onClick={() => setTab(t.key)} className={`press rounded-full px-3.5 py-2 text-sm font-semibold ${tab === t.key ? 'bg-ink text-linen' : 'text-ink-2 hover:bg-linen-2'}`}>
-                {t.label}
+              <button key={t.key} onClick={() => setTab(t.key)} className={`press rounded-full px-3 py-2 text-sm font-semibold whitespace-nowrap ${tab === t.key ? 'bg-ink text-linen' : 'text-ink-2 hover:bg-linen-2'}`}>
+                <span className="xl:hidden">{t.corto ?? t.label}</span>
+                <span className="hidden xl:inline">{t.label}</span>
               </button>
             ))}
           </nav>
           <button onClick={() => caja.refresh()} title={caja.error || (caja.lastSync ? `Última sincronización ${caja.lastSync.toLocaleTimeString('es-CO')}` : '')} className="ml-auto flex items-center gap-2 rounded-full px-2 py-1 text-xs text-muted hover:text-ink">
             <span className={`size-2 rounded-full ${s.dot}`} />
-            <span className="hidden lg:inline">{s.label}</span>
+            <span className="hidden 2xl:inline">{s.label}</span>
           </button>
-          {esDuena && (
-            <button onClick={() => setTab('ajustes')} className={`press rounded-full px-3 py-2 text-xs font-semibold md:hidden ${tab === 'ajustes' ? 'bg-ink text-linen' : 'text-muted hover:bg-linen-2'}`}>
-              Ajustes
-            </button>
-          )}
           <button onClick={onLogout} className="press rounded-full px-3 py-2 text-xs font-semibold text-muted hover:bg-linen-2 hover:text-ink">
             Salir
           </button>
-          <button onClick={() => nuevo()} className={`press hidden rounded-full px-4 py-2 text-sm font-semibold text-linen md:inline-flex ${tab === 'privado' ? 'bg-indigo' : 'bg-madder hover:bg-madder-2'}`}>
-            + {tab === 'privado' ? 'Cuenta privada' : 'Movimiento'} <kbd className="ml-2 rounded bg-linen/20 px-1.5 text-[11px] font-normal">N</kbd>
+          <button onClick={() => nuevo()} className={`press hidden rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap text-linen md:inline-flex ${tab === 'privado' ? 'bg-indigo' : 'bg-madder hover:bg-madder-2'}`}>
+            + {tab === 'privado' ? 'Cuenta privada' : 'Movimiento'} <kbd className="ml-2 hidden rounded bg-linen/20 px-1.5 text-[11px] font-normal xl:inline">N</kbd>
           </button>
         </div>
       </header>
@@ -288,6 +290,7 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
 
         {tab === 'hoy' && <h1 className="mb-6 font-display text-3xl tracking-tight sm:text-4xl">{esDuena ? 'Caja diaria' : 'Caja de hoy'}</h1>}
         {tab === 'precios' && <h1 className="mb-6 font-display text-3xl tracking-tight sm:text-4xl">Precios</h1>}
+        {tab === 'catalogo' && <h1 className="mb-6 font-display text-3xl tracking-tight sm:text-4xl">Catálogo de telas</h1>}
         {conPeriodo && (
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -330,6 +333,7 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
             {tab === 'balance' && <Balance rows={rows} periodo={periodo.label} />}
             {tab === 'movimientos' && <Movimientos rows={rows} onEdit={(m) => setForm({ open: true, initial: m, modo: 'caja' })} />}
             {tab === 'privado' && <Privado caja={rows} privados={privados} periodo={periodo.label} onNew={() => nuevo('privado')} onEdit={(m) => setForm({ open: true, initial: m, modo: 'privado' })} />}
+            {tab === 'catalogo' && <Catalogo catalogo={caja.catalogo} rol={rol} onSave={(l) => (caja.saveCatalogo(l), flash('Catálogo guardado'))} />}
             {tab === 'precios' && <Precios precios={caja.precios} rol={rol} onSave={(l) => (caja.savePrecios(l), flash('Lista de precios guardada'))} />}
             {tab === 'ajustes' && <Ajustes demo={caja.demo} pin={pin} total={caja.rows.length} onResetDemo={() => (caja.resetDemo(), flash('Datos de demostración restaurados'))} onLogout={onLogout} />}
           </>
@@ -338,20 +342,34 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
 
       {/* Barra inferior (móvil) */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 backdrop-blur-md md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex items-center justify-around px-2 py-2">
-          {movil.slice(0, Math.ceil(movil.length / 2)).map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)} className={`px-1 py-2 text-xs font-semibold ${tab === t.key ? 'text-ink' : 'text-muted'}`}>
+        <div className="relative flex items-center justify-around px-2 py-2">
+          {movil.slice(0, 2).map((t) => (
+            <button key={t.key} onClick={() => (setTab(t.key), setMas(false))} className={`px-1 py-2 text-xs font-semibold ${tab === t.key ? 'text-ink' : 'text-muted'}`}>
               {t.corto ?? t.label}
             </button>
           ))}
           <button onClick={() => nuevo()} className={`press grid size-12 shrink-0 place-items-center rounded-full text-2xl text-linen shadow-lg ${tab === 'privado' ? 'bg-indigo' : 'bg-madder'}`} aria-label="Nuevo movimiento">
             +
           </button>
-          {movil.slice(Math.ceil(movil.length / 2)).map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)} className={`px-1 py-2 text-xs font-semibold ${tab === t.key ? 'text-ink' : 'text-muted'}`}>
+          {movil.slice(2).map((t) => (
+            <button key={t.key} onClick={() => (setTab(t.key), setMas(false))} className={`px-1 py-2 text-xs font-semibold ${tab === t.key ? 'text-ink' : 'text-muted'}`}>
               {t.corto ?? t.label}
             </button>
           ))}
+          {extra.length > 0 && (
+            <button onClick={() => setMas((m) => !m)} aria-expanded={mas} className={`px-1 py-2 text-xs font-semibold ${extra.some((t) => t.key === tab) || mas ? 'text-ink' : 'text-muted'}`}>
+              Más
+            </button>
+          )}
+          {mas && (
+            <div className="absolute right-2 bottom-full mb-2 w-44 origin-bottom-right overflow-hidden rounded-2xl border border-line bg-paper shadow-xl">
+              {extra.map((t) => (
+                <button key={t.key} onClick={() => (setTab(t.key), setMas(false))} className={`block w-full px-4 py-3 text-left text-sm font-semibold ${tab === t.key ? 'bg-linen text-ink' : 'text-ink-2 hover:bg-linen/60'}`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </nav>
 

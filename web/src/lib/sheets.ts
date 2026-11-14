@@ -1,4 +1,5 @@
-import type { Caja, Movimiento, Precio, Rol } from './types'
+import type { Caja, Movimiento, Precio, Rol, Variante } from './types'
+import { normalizarVariante } from './catalogo'
 import { normalizarPrecio } from './precios'
 
 /**
@@ -87,6 +88,7 @@ export interface Datos {
   privados: Movimiento[]
   precios: Precio[]
   cajas: Caja[]
+  catalogo: Variante[]
 }
 
 export async function listar(url: string, pin: string): Promise<Datos> {
@@ -97,6 +99,7 @@ export async function listar(url: string, pin: string): Promise<Datos> {
     privados: ((d.privados as Movimiento[]) ?? []).map(normalizar),
     precios: ((d.precios as Precio[]) ?? []).map(normalizarPrecio).filter((p) => p.producto),
     cajas: ((d.cajas as Caja[]) ?? []).map(normalizarCaja),
+    catalogo: ((d.catalogo as Variante[]) ?? []).map(normalizarVariante).filter((v) => v.tela),
   }
 }
 
@@ -107,6 +110,12 @@ export const ping = async (url: string, pin: string): Promise<Rol> => ((await po
 export const guardar = (url: string, pin: string, rows: Movimiento[], hoja: Hoja = 'movimientos') => post(url, { action: 'upsert', pin, hoja, rows })
 export const borrar = (url: string, pin: string, ids: string[], hoja: Hoja = 'movimientos') => post(url, { action: 'delete', pin, hoja, ids })
 export const guardarPrecios = (url: string, pin: string, precios: Precio[]) => post(url, { action: 'precios', pin, precios })
+export const guardarCatalogo = (url: string, pin: string, catalogo: Variante[]) => post(url, { action: 'catalogo', pin, catalogo })
+/** Lectura pública (sin PIN) para la página: solo telas, modelos, colores y si hay. */
+export async function catalogoPublico(url: string): Promise<Variante[]> {
+  const d = await call(`${url}?action=catalogo&t=${Date.now()}`)
+  return ((d.catalogo as Variante[]) ?? []).map(normalizarVariante).filter((v) => v.tela)
+}
 export const abrirCaja = (url: string, pin: string, caja: Pick<Caja, 'base' | 'abrio' | 'nota'>) => post(url, { action: 'apertura', pin, caja })
 export const cerrarCaja = (url: string, pin: string, caja: Pick<Caja, 'contado' | 'cerro' | 'nota'>) => post(url, { action: 'cierre', pin, caja })
 export const reabrirCaja = (url: string, pin: string, fecha: string) => post(url, { action: 'reabrir', pin, fecha })

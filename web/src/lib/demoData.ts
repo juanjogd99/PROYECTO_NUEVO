@@ -1,4 +1,4 @@
-import { efectivoDelDia, type Caja, type Movimiento, type Precio } from './types'
+import { efectivoDelDia, type Caja, type Movimiento, type Precio, type Variante } from './types'
 import { todayISO } from './format'
 import { cotizar } from './precios'
 
@@ -156,3 +156,28 @@ export function demoCajas(rows: Movimiento[]): Caja[] {
     } satisfies Caja
   })
 }
+
+/** Catálogo de EJEMPLO: modelos y colores con su estado de inventario. */
+export const demoCatalogo: Variante[] = (
+  [
+    ['instituciones', 'Gabardina', 'Tempo', [['Azul oscuro', '#1f2a44', 'disponible'], ['Gris', '#7b7f86', 'disponible'], ['Beige', '#cdb894', 'pocas'], ['Verde', '#2f4a3a', 'disponible'], ['Negro', '#1c1c1c', 'agotado']]],
+    ['instituciones', 'Dril', 'Industrial', [['Caqui', '#a89270', 'disponible'], ['Azul', '#2b3d63', 'disponible'], ['Gris', '#6e7277', 'pocas']]],
+    ['instituciones', 'Lino flex', 'Liso', [['Blanco', '#f4f2ec', 'disponible'], ['Azul cielo', '#a9c6e3', 'disponible'], ['Rosado', '#e9bfc8', 'agotado']]],
+    ['instituciones', 'Escocés', 'Cuadro mediano', [['Rojo y azul', '#9b2d30', 'disponible'], ['Verde y azul', '#2f5a4a', 'pocas']]],
+    ['instituciones', 'Escocés', 'Cuadro pequeño', [['Gris y vino', '#6b4048', 'disponible']]],
+    ['instituciones', 'Antifluido', 'Liso', [['Azul turquesa', '#2a8c93', 'disponible'], ['Blanco', '#f6f6f2', 'disponible'], ['Vino', '#6d1f2a', 'pocas'], ['Verde quirúrgico', '#4f8f77', 'disponible']]],
+    ['trajes', 'Paño', 'Liso', [['Negro', '#1c1c1c', 'disponible'], ['Gris oxford', '#4a4c51', 'disponible'], ['Azul marino', '#1d2740', 'pocas']]],
+    ['trajes', 'Paño', 'Rayas finas', [['Gris', '#5b5e63', 'agotado'], ['Azul', '#25304d', 'disponible']]],
+    ['trajes', 'Vértigo', 'Liso', [['Negro', '#1c1c1c', 'disponible'], ['Azul', '#27365a', 'disponible'], ['Café', '#5a4332', 'pocas']]],
+    ['cortinas', 'Yakar', 'Damasco', [['Vino', '#6d1f2a', 'disponible'], ['Beige', '#d8c7a6', 'pocas'], ['Azul noche', '#1f2a44', 'agotado'], ['Dorado', '#b8954e', 'disponible']]],
+    ['cortinas', 'Yakar', 'Rombos', [['Gris', '#8a8d91', 'disponible'], ['Verde oliva', '#5d6b3a', 'disponible'], ['Terracota', '#a9553a', 'agotado']]],
+    ['cortinas', 'Yakar', 'Liso texturizado', [['Crudo', '#e6dccb', 'disponible'], ['Café', '#6a4e3a', 'pocas']]],
+    ['cortinas', 'Velo liso', 'Liso', [['Blanco', '#f7f6f2', 'disponible'], ['Hueso', '#ede4d3', 'disponible'], ['Gris perla', '#c9c9c6', 'pocas']]],
+    ['cortinas', 'Velo bordado', 'Flores', [['Blanco', '#f7f6f2', 'disponible'], ['Beige', '#e3d6bd', 'agotado']]],
+    ['cortinas', 'Velo bordado', 'Hojas', [['Blanco', '#f7f6f2', 'pocas']]],
+    ['hogar', 'Toalla por metro', 'Lisa', [['Blanco', '#f7f6f2', 'disponible'], ['Azul', '#3d5a8a', 'disponible'], ['Fucsia', '#c2386f', 'pocas']]],
+    ['hogar', 'Toalla por metro', 'Rayas', [['Multicolor', '#d08a3a', 'disponible']]],
+    ['fiesta', 'Satín', 'Liso', [['Blanco', '#f3efe8', 'disponible'], ['Dorado', '#c9a24b', 'disponible'], ['Rojo', '#b1252c', 'disponible'], ['Azul rey', '#24439a', 'pocas'], ['Fucsia', '#c2386f', 'agotado']]],
+    ['fiesta', 'Lentejuela', 'Clásica', [['Dorado', '#c9a24b', 'disponible'], ['Plateado', '#c0c2c4', 'pocas']]],
+  ] as [string, string, string, [string, string, Variante['estado']][]][]
+).flatMap(([categoria, tela, modelo, colores]) => colores.map(([color, hex, estado]) => ({ categoria, tela, modelo, color, hex, estado, nota: '' })))

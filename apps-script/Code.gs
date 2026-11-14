@@ -29,6 +29,9 @@ const COLUMNAS = ['ID', 'FECHA', 'TIPO', 'CATEGORIA', 'CONCEPTO', 'CANTIDAD', 'V
 const CAMPOS = ['id', 'fecha', 'tipo', 'categoria', 'concepto', 'cantidad', 'valor', 'total', 'forma', 'asesor', 'nota', 'origen', 'actualizado'];
 const COLUMNAS_PRECIOS = ['PRODUCTO', 'UNIDAD', 'PRECIO_DETAL', 'MAYOR_DESDE', 'PRECIO_MAYOR'];
 const CAMPOS_PRECIOS = ['producto', 'unidad', 'precio', 'mayorDesde', 'precioMayor'];
+const HOJA_CATALOGO = 'CATALOGO';
+const COLUMNAS_CATALOGO = ['CATEGORIA', 'TELA', 'MODELO', 'COLOR', 'HEX', 'ESTADO', 'NOTA'];
+const CAMPOS_CATALOGO = ['categoria', 'tela', 'modelo', 'color', 'hex', 'estado', 'nota'];
 const HOJA_CAJAS = 'CAJAS';
 const COLUMNAS_CAJAS = ['FECHA', 'ESTADO', 'BASE', 'ABRIO', 'APERTURA', 'VENTAS_EFECTIVO', 'GASTOS_EFECTIVO', 'ESPERADO', 'CONTADO', 'DIFERENCIA', 'CERRO', 'CIERRE', 'NOTA'];
 const CAMPOS_CAJAS = ['fecha', 'estado', 'base', 'abrio', 'apertura', 'ventasEfectivo', 'gastosEfectivo', 'esperado', 'contado', 'diferencia', 'cerro', 'cierre', 'nota'];
@@ -56,6 +59,13 @@ function instalar() {
     pr.getRange('C:C').setNumberFormat('$#,##0');
     pr.getRange('E:E').setNumberFormat('$#,##0');
     pr.setColumnWidth(1, 220);
+  }
+  if (!ss.getSheetByName(HOJA_CATALOGO)) {
+    const ct = ss.insertSheet(HOJA_CATALOGO);
+    encabezado_(ct, COLUMNAS_CATALOGO);
+    ct.setColumnWidth(2, 160);
+    const est = SpreadsheetApp.newDataValidation().requireValueInList(['disponible', 'pocas', 'agotado'], true).build();
+    ct.getRange('F2:F').setDataValidation(est);
   }
   let cj = ss.getSheetByName(HOJA_CAJAS);
   if (!cj) {
@@ -96,6 +106,8 @@ function crearBalance_(ss) {
 function doGet(e) {
   return responder_(function () {
     const p = (e && e.parameter) || {};
+    // Lectura pública para la página: solo el catálogo (telas, modelos, colores y si hay). Sin precios ni ventas.
+    if (p.action === 'catalogo') return { catalogo: leerCatalogo_() };
     const rol = rol_(p.pin);
     if (p.action && p.action !== 'list') throw new Error('Acción desconocida');
     const hoy = hoy_();
@@ -104,6 +116,7 @@ function doGet(e) {
       rol: rol,
       rows: rol === 'duena' ? rows : rows.filter(function (r) { return r.fecha === hoy; }),
       precios: leerPrecios_(),
+      catalogo: leerCatalogo_(),
     };
     const cajas = leerCajas_();
     cajas.forEach(function (c) { delete c.fila; });
@@ -119,13 +132,14 @@ function doPost(e) {
     const rol = rol_(body.pin);
     if (body.action === 'ping') return { rol: rol };
     const hoja = body.hoja === 'privado' ? HOJA_PRIVADO : HOJA;
-    if ((hoja === HOJA_PRIVADO || body.action === 'precios') && rol !== 'duena') throw new Error('SIN_PERMISO');
+    if ((hoja === HOJA_PRIVADO || body.action === 'precios' || body.action === 'catalogo') && rol !== 'duena') throw new Error('SIN_PERMISO');
     const lock = LockService.getDocumentLock();
     lock.waitLock(20000); // dos cajas guardando a la vez no se pisan
     try {
       if (body.action === 'upsert') return { saved: upsert_(hoja, body.rows || [], rol) };
       if (body.action === 'delete') return { deleted: borrar_(hoja, body.ids || [], rol) };
       if (body.action === 'precios') return { saved: guardarPrecios_(body.precios || []) };
+      if (body.action === 'catalogo') return { saved: guardarCatalogo_(body.catalogo || []) };
       if (body.action === 'apertura') return { caja: apertura_(body.caja || {}) };
       if (body.action === 'cierre') return { caja: cierre_(body.caja || {}) };
       if (body.action === 'reabrir') {
@@ -374,4 +388,32 @@ function reabrir_(fecha) {
   ['ventasEfectivo', 'gastosEfectivo', 'esperado', 'contado', 'diferencia', 'cerro', 'cierre'].forEach(function (k) { c[k] = ''; });
   c.nota = [c.nota, 'reabierta ' + hora_()].filter(function (x) { return x; }).join(' · ');
   return escribirCaja_(c);
+}
+
+/* ───────────────────────── Catálogo (inventario por tela, modelo y color) ───────────────────────── */
+
+function leerCatalogo_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(HOJA_CATALOGO);
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, CAMPOS_CATALOGO.length).getValues()
+    .filter(function (v) { return String(v[1]).trim(); })
+    .map(function (v) {
+      const r = {};
+      CAMPOS_CATALOGO.forEach(function (c, j) { r[c] = String(v[j] === null || v[j] === undefined ? '' : v[j]).trim(); });
+      return r;
+    });
+}
+
+function guardarCatalogo_(lista) {
+  let sh = SpreadsheetApp.getActive().getSheetByName(HOJA_CATALOGO);
+  if (!sh) { sh = SpreadsheetApp.getActive().insertSheet(HOJA_CATALOGO); encabezado_(sh, COLUMNAS_CATALOGO); }
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, CAMPOS_CATALOGO.length).clearContent();
+  const estados = { disponible: 1, pocas: 1, agotado: 1 };
+  const filas = lista
+    .filter(function (v) { return String(v.tela || '').trim(); })
+    .map(function (v) {
+      return [String(v.categoria || ''), String(v.tela).trim(), String(v.modelo || ''), String(v.color || ''), String(v.hex || ''), estados[v.estado] ? v.estado : 'disponible', String(v.nota || '')];
+    });
+  if (filas.length) sh.getRange(2, 1, filas.length, CAMPOS_CATALOGO.length).setValues(filas);
+  return filas.length;
 }

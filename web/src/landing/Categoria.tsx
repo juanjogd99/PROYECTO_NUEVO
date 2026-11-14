@@ -3,6 +3,15 @@ import { gsap } from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { CATEGORIAS, type Categoria as Cat } from './catalogo'
 import { waLink } from '../config'
+import { useCatalogoPublico } from './useCatalogoPublico'
+import { resumenTela } from '../lib/catalogo'
+import type { Stock } from '../lib/types'
+
+const STOCK_PUB: Record<Stock, { label: string; cls: string; dot: string }> = {
+  disponible: { label: 'Disponible', cls: 'bg-good/10 text-good', dot: 'bg-good' },
+  pocas: { label: 'Pocas unidades', cls: 'bg-warn/10 text-warn', dot: 'bg-warn' },
+  agotado: { label: 'Agotado', cls: 'bg-linen-2 text-muted', dot: 'bg-muted' },
+}
 
 gsap.registerPlugin(useGSAP)
 
@@ -17,6 +26,7 @@ function relleno(n: number) {
 export default function Categoria({ cat }: { cat: Cat }) {
   const root = useRef<HTMLDivElement>(null)
   const otras = CATEGORIAS.filter((c) => c.slug !== cat.slug)
+  const catalogo = useCatalogoPublico()
 
   useGSAP(
     () => {
@@ -84,8 +94,16 @@ export default function Categoria({ cat }: { cat: Cat }) {
                     </div>
                   )}
                 </div>
-                <h3 className="font-display text-xl tracking-tight">{t.nombre}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{t.uso}</p>
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="font-display text-xl tracking-tight">{t.nombre}</h3>
+                  {(() => {
+                    const r = resumenTela(catalogo, t.nombre)
+                    return r ? <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${STOCK_PUB[r.estado].cls}`}>{r.estado === 'agotado' ? 'Agotado' : r.estado === 'pocas' ? 'Pocas unidades' : 'Disponible'}</span> : null
+                  })()}
+                </div>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{t.uso}</p>
+                <Colores tela={t.nombre} catalogo={catalogo} />
+                <span className="flex-1" />
                 <a href={waLink(`Hola, ¿tienen ${t.nombre.toLowerCase()}? `)} className="mt-4 w-fit text-sm font-semibold text-madder underline decoration-madder/30 underline-offset-4 hover:decoration-madder">
                   Preguntar por esta tela
                 </a>
@@ -133,6 +151,39 @@ export default function Categoria({ cat }: { cat: Cat }) {
           </a>
         </div>
       </footer>
+    </div>
+  )
+}
+
+/** Modelos y colores de una tela con su estado, para que el cliente sepa qué hay antes de venir. */
+function Colores({ tela, catalogo }: { tela: string; catalogo: ReturnType<typeof useCatalogoPublico> }) {
+  const r = resumenTela(catalogo, tela)
+  if (!r) return null
+  return (
+    <div className="mt-4 space-y-2.5">
+      {r.modelos.map((m) => (
+        <div key={m.modelo}>
+          {(r.modelos.length > 1 || (m.modelo && m.modelo !== '—' && m.modelo !== 'Liso')) && <p className="mb-1 text-[11px] font-semibold tracking-wide text-muted uppercase">{m.modelo}</p>}
+          <ul className="flex flex-wrap gap-1.5">
+            {m.colores.map((v) => (
+              <li
+                key={v.color}
+                title={`${v.color}: ${STOCK_PUB[v.estado].label}`}
+                className={`flex items-center gap-1.5 rounded-full border border-line py-0.5 pr-2.5 pl-0.5 text-xs ${v.estado === 'agotado' ? 'text-muted line-through decoration-muted/60' : 'text-ink-2'}`}
+              >
+                <span className={`relative size-5 shrink-0 rounded-full border border-ink/10 ${v.estado === 'agotado' ? 'opacity-35' : ''}`} style={{ backgroundColor: v.hex }}>
+                  {v.estado === 'pocas' && <span className={`absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2 ring-paper ${STOCK_PUB.pocas.dot}`} />}
+                </span>
+                {v.color}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      <p className="text-[11px] text-muted">
+        {r.disponibles} de {r.total} colores disponibles
+        {r.modelos.some((m) => m.colores.some((v) => v.estado === 'pocas')) && <> · <span className="text-warn">●</span> pocas unidades</>}
+      </p>
     </div>
   )
 }
