@@ -10,25 +10,11 @@ import { useSmoothScroll } from './useSmoothScroll'
 import { TIENDA, waLink } from '../config'
 import fotoHero from '../assets/fotos/hero-rollos.jpg'
 import fotoHistoria from '../assets/fotos/historia-corte.jpg'
-import fotoUniformes from '../assets/fotos/uniformes.jpg'
-import fotoSastreria from '../assets/fotos/sastreria.jpg'
-import fotoCortinas from '../assets/fotos/cortinas.jpg'
-import fotoToallas from '../assets/fotos/toallas.jpg'
-import fotoSatin from '../assets/fotos/satin.jpg'
-import fotoConfeccion from '../assets/fotos/confeccion.jpg'
 import fotoBodega from '../assets/fotos/bodega.jpg'
+import { CATEGORIAS } from './catalogo'
+import Medidas from './Medidas'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
-
-/* Sin precios: cambian según la cantidad. La Caja los calcula con la lista de precios de la dueña. */
-const COLECCION = [
-  { nombre: 'Uniformes de colegio', uso: 'Gabardina, dril y telas para jardinera, pantalón y camisa, en los colores de cada colegio.', foto: fotoUniformes, alt: 'Niños con uniforme de colegio' },
-  { nombre: 'Trajes y sastrería', uso: 'Paños, dacrón y telas para saco y pantalón, para sastres y para ti.', foto: fotoSastreria, alt: 'Sastre midiendo un saco' },
-  { nombre: 'Cortinas a la medida', uso: 'Velos y telas para cortina. Tú eliges la tela y nosotros la confeccionamos.', foto: fotoCortinas, alt: 'Ventana con cortinas', pos: 'center 30%' },
-  { nombre: 'Toallas y lencería', uso: 'Toalla por metro, sábana, lino y lencería para el hogar.', foto: fotoToallas, alt: 'Toallas dobladas' },
-  { nombre: 'Satín y telas de fiesta', uso: 'Satín, organza, lame y lentejuela para eventos, danzas y disfraces.', foto: fotoSatin, alt: 'Tela de satín azul' },
-  { nombre: 'Confección y manualidades', uso: 'Antifluido, muselina, franela, piel de conejo y lo que tu proyecto necesite.', foto: fotoConfeccion, alt: 'Mesa de modista con tela y herramientas' },
-]
 
 const TELAS = ['Gabardina', 'Dril', 'Paño', 'Dacrón', 'Lino', 'Toalla', 'Satín', 'Velo bordado', 'Yakar', 'Antifluido', 'Piel de conejo', 'Lencería', 'Organza', 'Muselina', 'Seda', 'Tul', 'Franela', 'Lame']
 
@@ -116,6 +102,7 @@ export default function Landing() {
             <a href="#nosotros" className="opacity-80 transition-opacity hover:opacity-100">Nosotros</a>
             <a href="#telas" className="opacity-80 transition-opacity hover:opacity-100">Telas</a>
             <a href="#cortinas" className="opacity-80 transition-opacity hover:opacity-100">Cortinas</a>
+            <a href="#medidas" className="opacity-80 transition-opacity hover:opacity-100">Medidas</a>
             <a href="#visitanos" className="opacity-80 transition-opacity hover:opacity-100">Visítanos</a>
           </div>
           <a
@@ -232,8 +219,8 @@ export default function Landing() {
             </p>
           </div>
           <div className="grid gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-            {COLECCION.map((c) => (
-              <article key={c.nombre} data-reveal className="group">
+            {CATEGORIAS.map((c) => (
+              <a key={c.slug} href={`#telas-${c.slug}`} data-reveal className="group block">
                 <div data-photo className="swatch mb-4 overflow-hidden rounded-2xl bg-linen-2">
                   <img
                     src={c.foto}
@@ -243,9 +230,12 @@ export default function Landing() {
                     style={c.pos ? { objectPosition: c.pos } : undefined}
                   />
                 </div>
-                <h3 className="font-display text-xl tracking-tight">{c.nombre}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted">{c.uso}</p>
-              </article>
+                <h3 className="flex items-baseline justify-between gap-3 font-display text-xl tracking-tight">
+                  {c.nombre}
+                  <span className="shrink-0 font-sans text-sm font-semibold text-madder transition-transform duration-300 group-hover:translate-x-1">Ver telas →</span>
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted">{c.resumen}</p>
+              </a>
             ))}
           </div>
           <div data-reveal className="mt-14 flex flex-col items-start justify-between gap-4 rounded-2xl bg-ink px-6 py-6 text-linen sm:flex-row sm:items-center sm:px-8">
@@ -269,7 +259,7 @@ export default function Landing() {
               Cortinas hechas para <em>tu</em> ventana.
             </h2>
             <p data-reveal className="mt-6 max-w-md leading-relaxed text-linen/70">
-              Es uno de los servicios que más nos piden. Tú eliges la tela; nosotros medimos, cortamos y confeccionamos.
+              Es uno de los servicios que más nos piden. Tú eliges la tela; nosotros medimos, cortamos y confeccionamos. ¿Tienes afán? También hay cortinas listas para poner.
             </p>
             <a data-reveal href={waLink('Hola, quiero cotizar unas cortinas a la medida. ')} className="press mt-10 inline-flex rounded-full bg-linen px-6 py-3.5 text-sm font-semibold text-ink hover:bg-paper">
               Cotizar mis cortinas
@@ -291,6 +281,8 @@ export default function Landing() {
           </ol>
         </div>
       </section>
+
+      <Medidas />
 
       {/* ── CIFRAS ───────────────────────────────────── */}
       <section className="border-b border-line">
