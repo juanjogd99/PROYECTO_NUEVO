@@ -104,7 +104,7 @@ function Login({ onOk }: { onOk: (s: Sesion) => void }) {
           </button>
           {demo && (
             <p className="mt-4 rounded-lg bg-linen px-3 py-2 text-center text-xs leading-relaxed text-muted">
-              Demostración con datos de ejemplo
+              Modo de prueba (sin conectar al Sheet)
               <br />
               Caja (equipo): PIN <b className="text-ink">1234</b> · Dueña: PIN <b className="text-ink">2026</b>
             </p>
@@ -154,7 +154,7 @@ function periodos(rows: Movimiento[]): Periodo[] {
 /* ───────────────────────── Shell ───────────────────────── */
 
 const SYNC: Record<SyncState, { label: string; dot: string }> = {
-  demo: { label: 'Demostración · datos de ejemplo', dot: 'bg-indigo' },
+  demo: { label: 'Modo de prueba · sin conectar', dot: 'bg-indigo' },
   cargando: { label: 'Cargando del Sheet…', dot: 'bg-muted animate-pulse' },
   sincronizado: { label: 'Sincronizado con Sheets', dot: 'bg-good' },
   guardando: { label: 'Guardando en Sheets…', dot: 'bg-madder animate-pulse' },
@@ -296,7 +296,7 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
             <div>
               <h1 className="font-display text-3xl tracking-tight sm:text-4xl">{TITULOS[tab]}</h1>
               <p className="mt-1 text-sm text-muted">
-                {periodo.key === 'todo' ? `${dayShort(periodo.desde)} – ${dayShort(periodo.hasta)}` : periodo.label} · {(tab === 'privado' ? privados : rows).length.toLocaleString('es-CO')} movimientos
+                {periodo.desde === '0000' ? 'Todavía no hay movimientos' : `${periodo.key === 'todo' ? `${dayShort(periodo.desde)} – ${dayShort(periodo.hasta)}` : periodo.label} · ${(tab === 'privado' ? privados : rows).length.toLocaleString('es-CO')} movimientos`}
               </p>
             </div>
             <label className="flex items-center gap-2 text-sm">
@@ -335,7 +335,7 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
             {tab === 'privado' && <Privado caja={rows} privados={privados} periodo={periodo.label} onNew={() => nuevo('privado')} onEdit={(m) => setForm({ open: true, initial: m, modo: 'privado' })} />}
             {tab === 'catalogo' && <Catalogo catalogo={caja.catalogo} rol={rol} onSave={(l) => (caja.saveCatalogo(l), flash('Catálogo guardado'))} />}
             {tab === 'precios' && <Precios precios={caja.precios} rol={rol} onSave={(l) => (caja.savePrecios(l), flash('Lista de precios guardada'))} />}
-            {tab === 'ajustes' && <Ajustes demo={caja.demo} pin={pin} total={caja.rows.length} onResetDemo={() => (caja.resetDemo(), flash('Datos de demostración restaurados'))} onLogout={onLogout} />}
+            {tab === 'ajustes' && <Ajustes demo={caja.demo} pin={pin} total={caja.rows.length} onResetDemo={() => (caja.resetDemo(), flash('Modo de prueba en cero'))} onLogout={onLogout} />}
           </>
         )}
       </main>

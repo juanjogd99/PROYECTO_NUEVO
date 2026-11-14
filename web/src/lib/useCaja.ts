@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { efectivoDelDia, type Caja, type Movimiento, type Precio, type Rol, type Variante } from './types'
 import { abrirCaja, borrar, cerrarCaja, getSheetsUrl, guardar, guardarCatalogo, guardarPrecios, listar, reabrirCaja, SheetsError, type Datos, type Hoja } from './sheets'
-import { demoCajas, demoCatalogo, demoMovimientos, demoPrecios, demoPrivados } from './demoData'
+import { demoCatalogo, demoPrecios } from './demoData'
 import { todayISO } from './format'
 
 export type SyncState = 'demo' | 'cargando' | 'sincronizado' | 'guardando' | 'sin-conexion' | 'error'
@@ -15,7 +15,7 @@ type Op =
   | { kind: 'cierre'; caja: Caja }
   | { kind: 'reabrir'; fecha: string }
 
-const K = { cache: 'tm.cache-equipo', queue: 'tm.queue', demo: 'tm.demo-ejemplo', demoPriv: 'tm.demo-privado', demoPrecios: 'tm.demo-precios', demoCajas: 'tm.demo-cajas', demoCatalogo: 'tm.demo-catalogo' }
+const K = { cache: 'tm.cache-equipo', queue: 'tm.queue', demo: 'tm.prueba-movimientos', demoPriv: 'tm.prueba-privado', demoPrecios: 'tm.demo-precios', demoCajas: 'tm.prueba-cajas', demoCatalogo: 'tm.demo-catalogo' }
 const read = <T,>(key: string, fallback: T): T => {
   try {
     const v = localStorage.getItem(key)
@@ -140,13 +140,13 @@ export function useCaja(pin: string, rol: Rol) {
   useEffect(() => {
     if (demo) {
       const hoy = todayISO()
-      const rows = read<Movimiento[] | null>(K.demo, null) ?? demoMovimientos()
+      const rows = read<Movimiento[]>(K.demo, [])
       setDatos({
         rol,
         rows: esDuena ? rows : rows.filter((r) => r.fecha === hoy),
-        privados: esDuena ? (read<Movimiento[] | null>(K.demoPriv, null) ?? demoPrivados()) : [],
+        privados: esDuena ? read<Movimiento[]>(K.demoPriv, []) : [],
         precios: read<Precio[] | null>(K.demoPrecios, null) ?? demoPrecios,
-        cajas: (read<Caja[] | null>(K.demoCajas, null) ?? demoCajas(rows)).filter((c) => esDuena || c.fecha === hoy),
+        cajas: read<Caja[]>(K.demoCajas, []).filter((c) => esDuena || c.fecha === hoy),
         catalogo: read<Variante[] | null>(K.demoCatalogo, null) ?? demoCatalogo,
       })
       return
@@ -182,12 +182,12 @@ export function useCaja(pin: string, rol: Rol) {
           if (op.kind === 'precios') write(K.demoPrecios, next.precios)
           else if (op.kind === 'catalogo') write(K.demoCatalogo, next.catalogo)
           else if (op.kind === 'apertura' || op.kind === 'cierre' || op.kind === 'reabrir') {
-            const all = read<Caja[] | null>(K.demoCajas, null) ?? demoCajas(read<Movimiento[] | null>(K.demo, null) ?? demoMovimientos())
+            const all = read<Caja[]>(K.demoCajas, [])
             write(K.demoCajas, aplicar({ ...prev, cajas: all }, [op]).cajas)
           } else if (op.hoja === 'privado') write(K.demoPriv, next.privados)
           else {
             // en la demo el equipo solo ve hoy: se fusiona con lo guardado para no perder el resto
-            const all = read<Movimiento[] | null>(K.demo, null) ?? demoMovimientos()
+            const all = read<Movimiento[]>(K.demo, [])
             write(K.demo, aplicar({ ...prev, rows: all }, [op]).rows)
           }
         }
@@ -208,8 +208,7 @@ export function useCaja(pin: string, rol: Rol) {
       } catch {
         /* noop */
       }
-    const rows = demoMovimientos()
-    setDatos({ rol, rows, privados: demoPrivados(), precios: demoPrecios, cajas: demoCajas(rows), catalogo: demoCatalogo })
+    setDatos({ rol, rows: [], privados: [], precios: demoPrecios, cajas: [], catalogo: demoCatalogo })
   }, [rol])
 
   return {

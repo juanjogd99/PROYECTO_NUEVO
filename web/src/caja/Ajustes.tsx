@@ -45,7 +45,7 @@ export default function Ajustes({ demo, pin, total, onResetDemo, onLogout }: Pro
         <h2 className="font-display text-xl tracking-tight">Conexión con Google Sheets</h2>
         <p className="mt-1 text-sm leading-relaxed text-muted">
           {demo
-            ? 'Ahora estás en modo demostración: ves datos de ejemplo inventados y los cambios se guardan solo en este navegador. Conecta tu Sheet para trabajar con tus ventas reales.'
+            ? 'Ahora estás en modo de prueba: lo que registres se guarda solo en este navegador. Conecta tu Sheet para que las ventas queden guardadas de verdad.'
             : `Conectado. Hay ${total.toLocaleString('es-CO')} movimientos en el Sheet; cada cambio se sube al instante y lo que se edite en el Sheet aparece aquí en menos de 30 segundos.`}
         </p>
 
@@ -87,7 +87,7 @@ export default function Ajustes({ demo, pin, total, onResetDemo, onLogout }: Pro
       <section className="flex flex-wrap gap-2">
         {demo && (
           <button onClick={onResetDemo} className="press rounded-full border border-line bg-paper px-5 py-2.5 text-sm font-semibold hover:border-ink/40">
-            Restaurar datos de demostración
+            Borrar lo registrado en modo de prueba
           </button>
         )}
         <button onClick={onLogout} className="press rounded-full border border-line bg-paper px-5 py-2.5 text-sm font-semibold hover:border-ink/40">
