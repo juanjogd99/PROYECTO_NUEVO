@@ -3,6 +3,7 @@ import { waLink } from '../config'
 
 /*
  * Calculadora de cortinas y manteles listos para poner.
+ * El almacén maneja cortinas en velo y en yakar (no blackout).
  * Medidas de referencia del mercado colombiano (paneles de 1,40–1,80 m de ancho y 1,80–2,30 m de alto;
  * manteles redondos de Ø1,50 a Ø2,70 m y rectangulares de 1,40×1,80 a 1,80×3,00 m).
  * La disponibilidad real la confirma el almacén.
@@ -14,9 +15,9 @@ const m = (cm: number) => `${(cm / 100).toLocaleString('es-CO', { minimumFractio
 const PANEL_ANCHOS = [140, 150, 180]
 const PANEL_ALTOS = [180, 220, 230]
 const TIPOS = [
-  { id: 'velo', nombre: 'Velo', desc: 'Deja pasar la luz con privacidad' },
-  { id: 'blackout', nombre: 'Blackout', desc: 'Oscurece el cuarto y aísla el calor' },
-  { id: 'juego', nombre: 'Juego velo + cortina', desc: 'Dos capas: luz de día y oscuridad de noche' },
+  { id: 'velo', nombre: 'Velo', desc: 'Liviana: deja pasar la luz con privacidad' },
+  { id: 'yakar', nombre: 'Yakar', desc: 'Con cuerpo y textura: tapa más luz' },
+  { id: 'juego', nombre: 'Juego velo + yakar', desc: 'Dos capas: el velo atrás y el yakar adelante' },
 ] as const
 
 function calcCortina(ancho: number, alto: number) {
@@ -140,7 +141,7 @@ export default function Medidas() {
                   </p>
                   <p className="mt-1 text-linen/70">
                     {tipoNombre}
-                    {tipo === 'juego' && !c.aMedida && ` · ${c.mejor.n} de velo + ${c.mejor.n} de cortina`}
+                    {tipo === 'juego' && !c.aMedida && ` · ${c.mejor.n} paños de velo + ${c.mejor.n} de yakar`}
                   </p>
                   <CortinaSVG ancho={vAncho} alto={vAlto} barra={c.barra} panels={c.aMedida ? 2 : c.mejor.n} />
                   <ul className="mt-auto space-y-1.5 text-sm text-linen/80">

@@ -13,7 +13,7 @@ function relleno(n: number) {
   return `${sm ? 'sm:flex sm:col-span-1' : 'sm:hidden'} ${['lg:hidden', 'lg:flex lg:col-span-1', 'lg:flex lg:col-span-2'][lg]}`
 }
 
-/** Página de una categoría de telas (#telas-colegio, #telas-trajes…). */
+/** Página de una categoría de telas (#telas-instituciones, #telas-trajes…). */
 export default function Categoria({ cat }: { cat: Cat }) {
   const root = useRef<HTMLDivElement>(null)
   const otras = CATEGORIAS.filter((c) => c.slug !== cat.slug)
@@ -72,7 +72,18 @@ export default function Categoria({ cat }: { cat: Cat }) {
           <h2 data-in className="mb-8 font-display text-2xl tracking-tight">Lo que encuentras</h2>
           <ul className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
             {cat.telas.map((t) => (
-              <li key={t.nombre} data-in className="flex flex-col bg-paper p-6">
+              <li key={t.nombre} data-in className="group flex flex-col bg-paper p-4 sm:p-5">
+                <div className="mb-4 overflow-hidden rounded-xl bg-linen-2">
+                  {t.foto ? (
+                    <img src={t.foto} alt={`Tela ${t.nombre.toLowerCase()}`} loading="lazy" className="aspect-[16/9] w-full object-cover transition-transform duration-700 group-hover:scale-[1.04] sm:aspect-[4/3]" />
+                  ) : (
+                    <div className="relative aspect-[16/9] w-full sm:aspect-[4/3]" style={{ backgroundColor: t.color ?? '#e5dccd' }} aria-hidden>
+                      {/* trama sutil para que se lea como tela */}
+                      <div className="absolute inset-0 opacity-25" style={{ backgroundImage: 'repeating-linear-gradient(0deg, rgb(0 0 0 / .18) 0 1px, transparent 1px 4px), repeating-linear-gradient(90deg, rgb(255 255 255 / .25) 0 1px, transparent 1px 4px)' }} />
+                      <span className="absolute bottom-3 left-3 rounded-full bg-paper/85 px-2.5 py-1 text-[11px] font-semibold text-ink-2">Pregunta por colores</span>
+                    </div>
+                  )}
+                </div>
                 <h3 className="font-display text-xl tracking-tight">{t.nombre}</h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{t.uso}</p>
                 <a href={waLink(`Hola, ¿tienen ${t.nombre.toLowerCase()}? `)} className="mt-4 w-fit text-sm font-semibold text-madder underline decoration-madder/30 underline-offset-4 hover:decoration-madder">

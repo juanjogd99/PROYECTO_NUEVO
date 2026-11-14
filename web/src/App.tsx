@@ -5,7 +5,7 @@ import { categoriaPorSlug } from './landing/catalogo'
 
 const CajaApp = lazy(() => import('./caja/CajaApp'))
 
-/** Rutas por hash (funcionan en cualquier hosting estático): #caja, #telas-colegio…, o la página con sus anclas. */
+/** Rutas por hash (funcionan en cualquier hosting estático): #caja, #telas-instituciones…, o la página con sus anclas. */
 const getRoute = () => {
   const h = window.location.hash
   if (/^#\/?caja/.test(h)) return 'caja'
