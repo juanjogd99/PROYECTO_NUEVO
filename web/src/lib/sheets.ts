@@ -1,4 +1,4 @@
-import type { Movimiento, Precio, Rol } from './types'
+import type { Caja, Movimiento, Precio, Rol } from './types'
 import { normalizarPrecio } from './precios'
 
 /**
@@ -9,6 +9,8 @@ import { normalizarPrecio } from './precios'
  * POST {action:'upsert', pin, hoja?, rows}   → { ok, saved }      hoja: 'movimientos' | 'privado'
  * POST {action:'delete', pin, hoja?, ids}    → { ok, deleted }
  * POST {action:'precios', pin, precios}      → { ok, saved }      (solo la dueña)
+ * POST {action:'apertura'|'cierre', pin, caja} → { ok, caja }     abrir / cerrar la caja de hoy
+ * POST {action:'reabrir', pin, fecha}        → { ok, caja }      (solo la dueña)
  *
  * El servidor decide qué ve cada PIN: el equipo solo recibe los movimientos de hoy
  * y nunca recibe la pestaña PRIVADO.
@@ -50,6 +52,9 @@ const MENSAJES: Record<string, [string, SheetsError['kind']]> = {
   PIN_INVALIDO: ['PIN incorrecto', 'auth'],
   SIN_PERMISO: ['Ese cambio solo lo puede hacer la dueña', 'permiso'],
   SOLO_HOY: ['Desde la caja solo se pueden registrar o corregir movimientos de hoy', 'permiso'],
+  CAJA_SIN_ABRIR: ['Primero hay que abrir la caja de hoy', 'permiso'],
+  CAJA_CERRADA: ['La caja de hoy ya está cerrada', 'permiso'],
+  CAJA_YA_ABIERTA: ['La caja de hoy ya se abrió', 'permiso'],
 }
 
 async function parse(res: Response) {
@@ -81,6 +86,7 @@ export interface Datos {
   rows: Movimiento[]
   privados: Movimiento[]
   precios: Precio[]
+  cajas: Caja[]
 }
 
 export async function listar(url: string, pin: string): Promise<Datos> {
@@ -90,6 +96,7 @@ export async function listar(url: string, pin: string): Promise<Datos> {
     rows: ((d.rows as Movimiento[]) ?? []).map(normalizar),
     privados: ((d.privados as Movimiento[]) ?? []).map(normalizar),
     precios: ((d.precios as Precio[]) ?? []).map(normalizarPrecio).filter((p) => p.producto),
+    cajas: ((d.cajas as Caja[]) ?? []).map(normalizarCaja),
   }
 }
 
@@ -100,6 +107,28 @@ export const ping = async (url: string, pin: string): Promise<Rol> => ((await po
 export const guardar = (url: string, pin: string, rows: Movimiento[], hoja: Hoja = 'movimientos') => post(url, { action: 'upsert', pin, hoja, rows })
 export const borrar = (url: string, pin: string, ids: string[], hoja: Hoja = 'movimientos') => post(url, { action: 'delete', pin, hoja, ids })
 export const guardarPrecios = (url: string, pin: string, precios: Precio[]) => post(url, { action: 'precios', pin, precios })
+export const abrirCaja = (url: string, pin: string, caja: Pick<Caja, 'base' | 'abrio' | 'nota'>) => post(url, { action: 'apertura', pin, caja })
+export const cerrarCaja = (url: string, pin: string, caja: Pick<Caja, 'contado' | 'cerro' | 'nota'>) => post(url, { action: 'cierre', pin, caja })
+export const reabrirCaja = (url: string, pin: string, fecha: string) => post(url, { action: 'reabrir', pin, fecha })
+
+export function normalizarCaja(c: Partial<Caja>): Caja {
+  const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0)
+  return {
+    fecha: String(c.fecha ?? '').slice(0, 10),
+    estado: c.estado === 'cerrada' ? 'cerrada' : 'abierta',
+    base: n(c.base),
+    abrio: String(c.abrio ?? ''),
+    apertura: String(c.apertura ?? ''),
+    ventasEfectivo: n(c.ventasEfectivo),
+    gastosEfectivo: n(c.gastosEfectivo),
+    esperado: n(c.esperado),
+    contado: n(c.contado),
+    diferencia: n(c.diferencia),
+    cerro: String(c.cerro ?? ''),
+    cierre: String(c.cierre ?? ''),
+    nota: String(c.nota ?? ''),
+  }
+}
 
 /** Las filas editadas a mano en el Sheet pueden traer números como texto o celdas vacías. */
 export function normalizar(r: Partial<Movimiento>): Movimiento {

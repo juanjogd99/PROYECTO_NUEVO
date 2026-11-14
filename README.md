@@ -4,6 +4,7 @@ Página web + caja conectada a Google Sheets.
 
 - **Página de presentación** (`/`): la tienda, la colección con precios reales de referencia, cortinas a la medida, contacto.
 - **Caja** (`/#caja`), con dos claves:
+  - **Apertura y cierre:** cada mañana se **abre la caja** con la base en efectivo (sin abrirla el equipo no puede facturar) y en la noche se **cierra** contando billetes y monedas: la app dice si cuadra, sobra o falta. Queda en la pestaña CAJAS.
   - **Equipo** (`PIN_EQUIPO`): registra las ventas y gastos **de hoy**, ve el cuadre del día y consulta la **lista de precios**. La app calcula el precio sola (detal o por mayor según la cantidad).
   - **Dueña** (`PIN_DUENA`): todo lo anterior más el **Balance**, todos los movimientos (con edición), **Mis cuentas** (proveedores, nómina, arriendo, retiros: privado) y la edición de **precios**.
 
@@ -88,6 +89,8 @@ El Apps Script decide qué entrega a cada PIN, así que la privacidad no depende
 | Movimientos de otros días | ❌ ni siquiera los recibe | ✅ ver y editar |
 | Balance | ❌ | ✅ |
 | Cuentas privadas (pestaña PRIVADO) | ❌ ni siquiera las recibe | ✅ |
+| Abrir y cerrar la caja del día | ✅ | ✅ y reabrirla |
+| Historial de cierres (faltantes y sobrantes) | ❌ | ✅ |
 | Lista de precios | 👁️ solo consultar | ✅ editar |
 
 - Comparte el Google Sheet **solo con la dueña**; el equipo entra por la página.

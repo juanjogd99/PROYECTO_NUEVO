@@ -2,8 +2,8 @@
  * TEXTILES MYRIAM — Conexión entre la página web (Caja) y Google Sheets.
  *
  * Dos claves:
- *   - PIN_EQUIPO: la usan las personas de la caja. Solo ven y registran los movimientos de HOY
- *                 y consultan la lista de precios. No ven el balance ni las cuentas privadas.
+ *   - PIN_EQUIPO: la usan las personas de la caja. Abren la caja en la mañana con la base,
+ *                 registran los movimientos de HOY, cierran la caja en la noche y consultan precios. No ven el balance ni las cuentas privadas.
  *   - PIN_DUENA:  solo la dueña. Ve todo, edita cualquier movimiento, cambia los precios
  *                 y lleva sus cuentas privadas (pestaña PRIVADO).
  *
@@ -29,6 +29,9 @@ const COLUMNAS = ['ID', 'FECHA', 'TIPO', 'CATEGORIA', 'CONCEPTO', 'CANTIDAD', 'V
 const CAMPOS = ['id', 'fecha', 'tipo', 'categoria', 'concepto', 'cantidad', 'valor', 'total', 'forma', 'asesor', 'nota', 'origen', 'actualizado'];
 const COLUMNAS_PRECIOS = ['PRODUCTO', 'UNIDAD', 'PRECIO_DETAL', 'MAYOR_DESDE', 'PRECIO_MAYOR'];
 const CAMPOS_PRECIOS = ['producto', 'unidad', 'precio', 'mayorDesde', 'precioMayor'];
+const HOJA_CAJAS = 'CAJAS';
+const COLUMNAS_CAJAS = ['FECHA', 'ESTADO', 'BASE', 'ABRIO', 'APERTURA', 'VENTAS_EFECTIVO', 'GASTOS_EFECTIVO', 'ESPERADO', 'CONTADO', 'DIFERENCIA', 'CERRO', 'CIERRE', 'NOTA'];
+const CAMPOS_CAJAS = ['fecha', 'estado', 'base', 'abrio', 'apertura', 'ventasEfectivo', 'gastosEfectivo', 'esperado', 'contado', 'diferencia', 'cerro', 'cierre', 'nota'];
 
 /* ───────────────────────── Instalación ───────────────────────── */
 
@@ -53,6 +56,14 @@ function instalar() {
     pr.getRange('C:C').setNumberFormat('$#,##0');
     pr.getRange('E:E').setNumberFormat('$#,##0');
     pr.setColumnWidth(1, 220);
+  }
+  let cj = ss.getSheetByName(HOJA_CAJAS);
+  if (!cj) {
+    cj = ss.insertSheet(HOJA_CAJAS);
+    encabezado_(cj, COLUMNAS_CAJAS);
+    cj.getRange('A:A').setNumberFormat('yyyy-mm-dd');
+    cj.getRange('C:C').setNumberFormat('$#,##0');
+    cj.getRange('F:J').setNumberFormat('$#,##0');
   }
   crearBalance_(ss);
   ss.toast('Listo. Ahora: Implementar → Nueva implementación → Aplicación web.', 'Textiles Myriam', 8);
@@ -94,6 +105,9 @@ function doGet(e) {
       rows: rol === 'duena' ? rows : rows.filter(function (r) { return r.fecha === hoy; }),
       precios: leerPrecios_(),
     };
+    const cajas = leerCajas_();
+    cajas.forEach(function (c) { delete c.fila; });
+    out.cajas = rol === 'duena' ? cajas : cajas.filter(function (c) { return c.fecha === hoy; });
     if (rol === 'duena') out.privados = leer_(HOJA_PRIVADO);
     return out;
   });
@@ -112,6 +126,12 @@ function doPost(e) {
       if (body.action === 'upsert') return { saved: upsert_(hoja, body.rows || [], rol) };
       if (body.action === 'delete') return { deleted: borrar_(hoja, body.ids || [], rol) };
       if (body.action === 'precios') return { saved: guardarPrecios_(body.precios || []) };
+      if (body.action === 'apertura') return { caja: apertura_(body.caja || {}) };
+      if (body.action === 'cierre') return { caja: cierre_(body.caja || {}) };
+      if (body.action === 'reabrir') {
+        if (rol !== 'duena') throw new Error('SIN_PERMISO');
+        return { caja: reabrir_(String(body.fecha || hoy_())) };
+      }
     } finally {
       lock.releaseLock();
     }
@@ -227,7 +247,8 @@ function upsert_(nombre, rows, rol) {
   const sh = hoja_(nombre);
   const index = indice_(sh);
   const hoy = hoy_();
-  // El equipo solo puede registrar o corregir movimientos de hoy
+  // El equipo solo puede registrar o corregir movimientos de hoy, y con la caja abierta
+  if (rol !== 'duena' && nombre === HOJA) verificarCajaAbierta_();
   if (rol !== 'duena') {
     rows.forEach(function (r) {
       const prev = index[String(r.id)];
@@ -250,6 +271,7 @@ function borrar_(nombre, ids, rol) {
   const sh = hoja_(nombre);
   const index = indice_(sh);
   const hoy = hoy_();
+  if (rol !== 'duena' && nombre === HOJA) verificarCajaAbierta_();
   const filas = [];
   ids.forEach(function (id) {
     const prev = index[String(id)];
@@ -259,4 +281,97 @@ function borrar_(nombre, ids, rol) {
   });
   filas.sort(function (a, b) { return b - a; }).forEach(function (f) { sh.deleteRow(f); }); // de abajo hacia arriba
   return filas.length;
+}
+
+/* ───────────────────────── Apertura y cierre de caja ───────────────────────── */
+
+function hora_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm');
+}
+
+function hojaCajas_() {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(HOJA_CAJAS);
+  if (!sh) { sh = ss.insertSheet(HOJA_CAJAS); encabezado_(sh, COLUMNAS_CAJAS); }
+  return sh;
+}
+
+function leerCajas_() {
+  const sh = hojaCajas_();
+  const n = sh.getLastRow() - 1;
+  if (n < 1) return [];
+  const tz = Session.getScriptTimeZone();
+  return sh.getRange(2, 1, n, CAMPOS_CAJAS.length).getValues()
+    .filter(function (v) { return v[0]; })
+    .map(function (v, i) {
+      const c = { fila: i + 2 };
+      CAMPOS_CAJAS.forEach(function (k, j) { c[k] = v[j]; });
+      c.fecha = aTexto_(c.fecha, tz);
+      ['apertura', 'cierre'].forEach(function (k) { if (c[k] instanceof Date) c[k] = Utilities.formatDate(c[k], tz, 'HH:mm'); });
+      return c;
+    });
+}
+
+function cajaDe_(fecha) {
+  return leerCajas_().filter(function (c) { return c.fecha === fecha; })[0];
+}
+
+function escribirCaja_(c) {
+  const f = String(c.fecha).split('-');
+  const fila = CAMPOS_CAJAS.map(function (k) {
+    if (k === 'fecha') return new Date(Number(f[0]), Number(f[1]) - 1, Number(f[2]));
+    return c[k] === undefined || c[k] === null ? '' : c[k];
+  });
+  const sh = hojaCajas_();
+  if (c.fila) sh.getRange(c.fila, 1, 1, fila.length).setValues([fila]);
+  else sh.getRange(sh.getLastRow() + 1, 1, 1, fila.length).setValues([fila]);
+  delete c.fila;
+  return c;
+}
+
+function verificarCajaAbierta_() {
+  const c = cajaDe_(hoy_());
+  if (!c) throw new Error('CAJA_SIN_ABRIR');
+  if (c.estado !== 'abierta') throw new Error('CAJA_CERRADA');
+}
+
+function apertura_(datos) {
+  const hoy = hoy_();
+  if (cajaDe_(hoy)) throw new Error('CAJA_YA_ABIERTA');
+  return escribirCaja_({
+    fecha: hoy, estado: 'abierta', base: Math.max(0, Number(datos.base) || 0), abrio: String(datos.abrio || ''),
+    apertura: hora_(), ventasEfectivo: '', gastosEfectivo: '', esperado: '', contado: '', diferencia: '', cerro: '', cierre: '', nota: String(datos.nota || ''),
+  });
+}
+
+/** Cierra la caja de hoy: el esperado se calcula aquí, con lo que hay en MOVIMIENTOS. */
+function cierre_(datos) {
+  const hoy = hoy_();
+  const c = cajaDe_(hoy);
+  if (!c) throw new Error('CAJA_SIN_ABRIR');
+  if (c.estado !== 'abierta') throw new Error('CAJA_CERRADA');
+  let ventas = 0, gastos = 0;
+  leer_(HOJA).forEach(function (r) {
+    if (r.fecha !== hoy || String(r.forma || 'Efectivo') !== 'Efectivo') return;
+    if (r.tipo === 'Egreso') gastos += Number(r.total) || 0; else ventas += Number(r.total) || 0;
+  });
+  c.estado = 'cerrada';
+  c.ventasEfectivo = ventas;
+  c.gastosEfectivo = gastos;
+  c.esperado = (Number(c.base) || 0) + ventas - gastos;
+  c.contado = Math.max(0, Number(datos.contado) || 0);
+  c.diferencia = c.contado - c.esperado;
+  c.cerro = String(datos.cerro || '');
+  c.cierre = hora_();
+  c.nota = [c.nota, datos.nota].filter(function (x) { return x; }).join(' · ');
+  return escribirCaja_(c);
+}
+
+function reabrir_(fecha) {
+  const c = cajaDe_(fecha);
+  if (!c) throw new Error('CAJA_SIN_ABRIR');
+  c.estado = 'abierta';
+  ['ventasEfectivo', 'gastosEfectivo', 'esperado', 'contado', 'diferencia', 'cerro', 'cierre'].forEach(function (k) { c[k] = ''; });
+  c.nota = [c.nota, 'reabierta ' + hora_()].filter(function (x) { return x; }).join(' · ');
+  return escribirCaja_(c);
 }

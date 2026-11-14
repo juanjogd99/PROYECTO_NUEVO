@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Movimiento, Rol } from '../lib/types'
 import { DEMO_PINES, limpiarSesion, useCaja, type SyncState } from '../lib/useCaja'
 import { getSheetsUrl, ping } from '../lib/sheets'
-import { dayShort, parseDate } from '../lib/format'
+import { dayShort, parseDate, todayISO } from '../lib/format'
 import Balance from './Balance'
 import Movimientos from './Movimientos'
 import MovForm, { type Modo } from './MovForm'
@@ -10,6 +10,7 @@ import Ajustes from './Ajustes'
 import Hoy from './Hoy'
 import Precios from './Precios'
 import Privado from './Privado'
+import { HistorialCajas } from './CajaDia'
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
@@ -161,15 +162,16 @@ const SYNC: Record<SyncState, { label: string; dot: string }> = {
 }
 
 type Tab = 'hoy' | 'balance' | 'movimientos' | 'privado' | 'precios' | 'ajustes'
-const TABS: Record<Rol, { key: Tab; label: string }[]> = {
+const TABS: Record<Rol, { key: Tab; label: string; corto?: string }[]> = {
   equipo: [
     { key: 'hoy', label: 'Hoy' },
     { key: 'precios', label: 'Precios' },
   ],
   duena: [
     { key: 'balance', label: 'Balance' },
-    { key: 'movimientos', label: 'Movimientos' },
-    { key: 'privado', label: 'Mis cuentas' },
+    { key: 'hoy', label: 'Caja diaria', corto: 'Caja' },
+    { key: 'movimientos', label: 'Movimientos', corto: 'Movim.' },
+    { key: 'privado', label: 'Mis cuentas', corto: 'Cuentas' },
     { key: 'precios', label: 'Precios' },
     { key: 'ajustes', label: 'Ajustes' },
   ],
@@ -203,7 +205,20 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
     window.setTimeout(() => setToast(''), 2600)
   }, [])
 
-  const nuevo = useCallback((modo: Modo = tab === 'privado' ? 'privado' : 'caja') => setForm({ open: true, initial: null, modo }), [tab])
+  const cajaHoy = caja.cajas.find((c) => c.fecha === todayISO())
+
+  const nuevo = useCallback(
+    (modo: Modo = tab === 'privado' ? 'privado' : 'caja') => {
+      // el equipo solo factura con la caja de hoy abierta (el Apps Script también lo exige)
+      if (rol === 'equipo' && modo === 'caja' && cajaHoy?.estado !== 'abierta') {
+        setTab('hoy')
+        flash(cajaHoy ? 'La caja de hoy ya está cerrada' : 'Primero abre la caja con la base del día')
+        return
+      }
+      setForm({ open: true, initial: null, modo })
+    },
+    [tab, rol, cajaHoy?.estado, cajaHoy, flash],
+  )
 
   // atajo: "n" abre un movimiento nuevo (sin animación extra: es una acción de teclado frecuente)
   useEffect(() => {
@@ -223,6 +238,7 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
   }, [caja.error, caja.state, flash])
 
   const s = SYNC[caja.state]
+  const movil = tabs.filter((t) => t.key !== 'ajustes')
   const conPeriodo = tab === 'balance' || tab === 'movimientos' || tab === 'privado'
 
   return (
@@ -244,6 +260,11 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
             <span className={`size-2 rounded-full ${s.dot}`} />
             <span className="hidden lg:inline">{s.label}</span>
           </button>
+          {esDuena && (
+            <button onClick={() => setTab('ajustes')} className={`press rounded-full px-3 py-2 text-xs font-semibold md:hidden ${tab === 'ajustes' ? 'bg-ink text-linen' : 'text-muted hover:bg-linen-2'}`}>
+              Ajustes
+            </button>
+          )}
           <button onClick={onLogout} className="press rounded-full px-3 py-2 text-xs font-semibold text-muted hover:bg-linen-2 hover:text-ink">
             Salir
           </button>
@@ -265,7 +286,7 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
           </p>
         )}
 
-        {tab === 'hoy' && <h1 className="mb-6 font-display text-3xl tracking-tight sm:text-4xl">Caja de hoy</h1>}
+        {tab === 'hoy' && <h1 className="mb-6 font-display text-3xl tracking-tight sm:text-4xl">{esDuena ? 'Caja diaria' : 'Caja de hoy'}</h1>}
         {tab === 'precios' && <h1 className="mb-6 font-display text-3xl tracking-tight sm:text-4xl">Precios</h1>}
         {conPeriodo && (
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -292,7 +313,20 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
           <p className="rounded-2xl border border-dashed border-line p-12 text-center font-display text-xl">Cargando…</p>
         ) : (
           <>
-            {tab === 'hoy' && <Hoy rows={caja.rows} onEdit={(m) => setForm({ open: true, initial: m, modo: 'caja' })} />}
+            {tab === 'hoy' && (
+              <div className="space-y-5">
+                <Hoy
+                  rows={caja.rows}
+                  caja={cajaHoy}
+                  rol={rol}
+                  onEdit={(m) => (rol === 'equipo' && cajaHoy?.estado !== 'abierta' ? flash('La caja no está abierta: no se puede corregir') : setForm({ open: true, initial: m, modo: 'caja' }))}
+                  onAbrir={(base, quien, nota) => (caja.abrir(base, quien, nota), flash(`Caja abierta con ${base.toLocaleString('es-CO')} de base`))}
+                  onCerrar={(contado, quien, nota) => (caja.cerrar(contado, quien, nota), flash('Caja cerrada'))}
+                  onReabrir={(fecha) => (caja.reabrir(fecha), flash('Caja reabierta'))}
+                />
+                {esDuena && <HistorialCajas cajas={caja.cajas} />}
+              </div>
+            )}
             {tab === 'balance' && <Balance rows={rows} periodo={periodo.label} />}
             {tab === 'movimientos' && <Movimientos rows={rows} onEdit={(m) => setForm({ open: true, initial: m, modo: 'caja' })} />}
             {tab === 'privado' && <Privado caja={rows} privados={privados} periodo={periodo.label} onNew={() => nuevo('privado')} onEdit={(m) => setForm({ open: true, initial: m, modo: 'privado' })} />}
@@ -305,17 +339,17 @@ function Shell({ pin, rol, onLogout }: { pin: string; rol: Rol; onLogout: () => 
       {/* Barra inferior (móvil) */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 backdrop-blur-md md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex items-center justify-around px-2 py-2">
-          {tabs.slice(0, Math.ceil(tabs.length / 2)).map((t) => (
+          {movil.slice(0, Math.ceil(movil.length / 2)).map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)} className={`px-1 py-2 text-xs font-semibold ${tab === t.key ? 'text-ink' : 'text-muted'}`}>
-              {t.label}
+              {t.corto ?? t.label}
             </button>
           ))}
           <button onClick={() => nuevo()} className={`press grid size-12 shrink-0 place-items-center rounded-full text-2xl text-linen shadow-lg ${tab === 'privado' ? 'bg-indigo' : 'bg-madder'}`} aria-label="Nuevo movimiento">
             +
           </button>
-          {tabs.slice(Math.ceil(tabs.length / 2)).map((t) => (
+          {movil.slice(Math.ceil(movil.length / 2)).map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)} className={`px-1 py-2 text-xs font-semibold ${tab === t.key ? 'text-ink' : 'text-muted'}`}>
-              {t.label}
+              {t.corto ?? t.label}
             </button>
           ))}
         </div>

@@ -1,4 +1,4 @@
-import type { Movimiento, Precio } from './types'
+import { efectivoDelDia, type Caja, type Movimiento, type Precio } from './types'
 import { todayISO } from './format'
 import { cotizar } from './precios'
 
@@ -126,4 +126,33 @@ export function demoPrivados(): Movimiento[] {
     nota: '',
     origen: 'ejemplo',
   }))
+}
+
+/** Historial de aperturas y cierres de EJEMPLO. Hoy queda sin abrir para probar la apertura. */
+export function demoCajas(rows: Movimiento[]): Caja[] {
+  const r = rng(77)
+  const hoy = todayISO()
+  const fechas = [...new Set(rows.map((x) => x.fecha))].filter((f) => f < hoy).sort()
+  return fechas.map((fecha, i) => {
+    const { ventas, gastos } = efectivoDelDia(rows, fecha)
+    const base = 200000
+    const esperado = base + ventas - gastos
+    const x = r()
+    const diferencia = x < 0.7 ? 0 : x < 0.9 ? -Math.round((2 + r() * 13) * 1000) : Math.round((1 + r() * 4) * 1000)
+    return {
+      fecha,
+      estado: 'cerrada',
+      base,
+      abrio: i % 3 ? 'Ana' : 'Luis',
+      apertura: `08:0${Math.floor(r() * 9)}`,
+      ventasEfectivo: ventas,
+      gastosEfectivo: gastos,
+      esperado,
+      contado: esperado + diferencia,
+      diferencia,
+      cerro: i % 3 ? 'Ana' : 'Luis',
+      cierre: `19:${String(Math.floor(r() * 40) + 10)}`,
+      nota: '',
+    } satisfies Caja
+  })
 }

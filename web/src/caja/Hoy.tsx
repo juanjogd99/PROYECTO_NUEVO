@@ -1,9 +1,20 @@
 import { useMemo } from 'react'
-import type { Movimiento } from '../lib/types'
+import type { Caja, Movimiento, Rol } from '../lib/types'
+import CajaDia from './CajaDia'
 import { dateLong, money, number, todayISO } from '../lib/format'
 
 /** Vista del equipo: solo el día de hoy, con lo necesario para cuadrar la caja al cerrar. */
-export default function Hoy({ rows, onEdit }: { rows: Movimiento[]; onEdit: (m: Movimiento) => void }) {
+interface Props {
+  rows: Movimiento[]
+  caja?: Caja
+  rol: Rol
+  onEdit: (m: Movimiento) => void
+  onAbrir: (base: number, abrio: string, nota: string) => void
+  onCerrar: (contado: number, cerro: string, nota: string) => void
+  onReabrir: (fecha: string) => void
+}
+
+export default function Hoy({ rows, caja, rol, onEdit, onAbrir, onCerrar, onReabrir }: Props) {
   const hoy = todayISO()
   const delDia = useMemo(() => rows.filter((r) => r.fecha === hoy).sort((a, b) => b.id.localeCompare(a.id)), [rows, hoy])
 
@@ -18,13 +29,14 @@ export default function Hoy({ rows, onEdit }: { rows: Movimiento[]; onEdit: (m: 
       vendido: ing.reduce((s, m) => s + m.total, 0),
       ventas: ing.length,
       gastos: egr.reduce((s, m) => s + m.total, 0),
-      efectivoEnCaja: efectivoEntra - efectivoSale,
+      efectivoEnCaja: (caja?.base ?? 0) + efectivoEntra - efectivoSale,
       porForma: [...porForma].sort((a, b) => b[1] - a[1]),
     }
-  }, [delDia])
+  }, [delDia, caja?.base])
 
   return (
     <div className="space-y-5">
+      <CajaDia caja={caja} rows={rows} rol={rol} onAbrir={onAbrir} onCerrar={onCerrar} onReabrir={onReabrir} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div className="rounded-2xl bg-ink p-5 text-linen">
           <p className="text-xs font-semibold tracking-wide text-linen/60 uppercase">Vendido hoy</p>
@@ -38,7 +50,7 @@ export default function Hoy({ rows, onEdit }: { rows: Movimiento[]; onEdit: (m: 
         <div className="col-span-2 rounded-2xl border border-good/30 bg-good/5 p-5">
           <p className="text-xs font-semibold tracking-wide text-good uppercase">Efectivo que debe haber en caja</p>
           <p className="mt-2 font-display text-3xl tracking-tight tabular">{money(r.efectivoEnCaja)}</p>
-          <p className="mt-1 text-xs text-muted">Ventas en efectivo menos gastos pagados en efectivo. Compáralo con lo que cuentas al cerrar (más la base del día).</p>
+          <p className="mt-1 text-xs text-muted">{caja ? `Base ${money(caja.base)} + ventas en efectivo − gastos en efectivo.` : 'Se calcula cuando abras la caja con la base del día.'}</p>
         </div>
       </div>
 
@@ -58,7 +70,7 @@ export default function Hoy({ rows, onEdit }: { rows: Movimiento[]; onEdit: (m: 
           <span className="text-xs text-muted">Toca un movimiento para corregirlo</span>
         </header>
         {delDia.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-muted">Todavía no hay movimientos hoy. Registra la primera venta con el botón +.</p>
+          <p className="px-5 py-12 text-center text-sm text-muted">Todavía no hay movimientos hoy. {caja?.estado === 'abierta' ? 'Registra la primera venta con el botón +.' : ''}</p>
         ) : (
           <ul className="divide-y divide-line/70">
             {delDia.map((m) => (
