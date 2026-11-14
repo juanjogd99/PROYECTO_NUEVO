@@ -28,7 +28,7 @@ export default function Ajustes({ demo, pin, total, onResetDemo, onLogout }: Pro
       setMsg({ ok: true, text: 'Conectado. Recargando…' })
       window.setTimeout(() => window.location.reload(), 700)
     } catch (e) {
-      setMsg({ ok: false, text: (e as Error).message + '. Revisa que el PIN de la Caja sea el mismo del Apps Script.' })
+      setMsg({ ok: false, text: (e as Error).message + '. Entra con el PIN de la dueña que pusiste en el Apps Script.' })
     } finally {
       setBusy(false)
     }
@@ -74,7 +74,7 @@ export default function Ajustes({ demo, pin, total, onResetDemo, onLogout }: Pro
           <summary className="cursor-pointer font-semibold">¿Cómo obtengo la URL? (5 minutos, una sola vez)</summary>
           <ol className="mt-3 list-decimal space-y-2 pl-5 leading-relaxed text-ink-2">
             <li>Abre tu Google Sheet (la plantilla Textiles_Myriam_Caja) → menú <b>Extensiones → Apps Script</b>.</li>
-            <li>Borra lo que haya y pega el archivo <code>apps-script/Code.gs</code> del proyecto. Cambia el <b>PIN</b> en la línea 15 y guarda.</li>
+            <li>Borra lo que haya y pega el archivo <code>apps-script/Code.gs</code> del proyecto. Cambia los dos PIN (<b>PIN_EQUIPO</b> para la caja y <b>PIN_DUENA</b> solo para ti) y guarda.</li>
             <li>Arriba elige la función <b>instalar</b> y pulsa <b>Ejecutar</b>. Acepta los permisos. Respeta las pestañas MOVIMIENTOS y BALANCE de la plantilla.</li>
             <li>
               <b>Implementar → Nueva implementación →</b> tipo <b>Aplicación web</b>. Ejecutar como: <b>Yo</b>. Acceso: <b>Cualquier persona</b>.

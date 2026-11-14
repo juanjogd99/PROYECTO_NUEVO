@@ -8,21 +8,35 @@ import ScrollReveal from '../components/reactbits/ScrollReveal/ScrollReveal'
 import Noise from '../components/reactbits/Noise/Noise'
 import { useSmoothScroll } from './useSmoothScroll'
 import { TIENDA, waLink } from '../config'
+import fotoHero from '../assets/fotos/hero-rollos.jpg'
+import fotoHistoria from '../assets/fotos/historia-corte.jpg'
+import fotoUniformes from '../assets/fotos/uniformes.jpg'
+import fotoSastreria from '../assets/fotos/sastreria.jpg'
+import fotoCortinas from '../assets/fotos/cortinas.jpg'
+import fotoToallas from '../assets/fotos/toallas.jpg'
+import fotoSatin from '../assets/fotos/satin.jpg'
+import fotoConfeccion from '../assets/fotos/confeccion.jpg'
+import fotoBodega from '../assets/fotos/bodega.jpg'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
-/* Precios de referencia tomados de las ventas reales de agosto 2026 (percentil bajo por familia). */
+/* Sin precios: cambian según la cantidad. La Caja los calcula con la lista de precios de la dueña. */
 const COLECCION = [
-  { nombre: 'Cortinas a la medida', uso: 'Confección por encargo, con abono', precio: 'desde $48.000', unidad: 'el paño', weave: 'weave-cortina', dark: true, destacado: true },
-  { nombre: 'Velos', uso: 'Bordados, suizos, de cuadros y lisos', precio: '$7.500', unidad: 'metro', weave: 'weave-velo' },
-  { nombre: 'Toallas y lencería', uso: 'Toalla por metro, lino y lencería para el hogar', precio: '$8.500', unidad: 'metro', weave: 'weave-toalla' },
-  { nombre: 'Satín', uso: 'Para decoración, forros y eventos', precio: '$4.500', unidad: 'metro', weave: 'weave-satin' },
-  { nombre: 'Yakar', uso: 'Tapicería y cojines', precio: '$14.300', unidad: 'metro', weave: 'weave-yakar', dark: true },
-  { nombre: 'Piel de conejo', uso: 'Peluches, mantas y abrigo', precio: '$15.500', unidad: 'metro', weave: 'weave-piel' },
-  { nombre: 'Temporada navideña', uso: 'Manteles, caminos y telas de Navidad', precio: '$12.000', unidad: 'metro', weave: 'weave-navidad', dark: true },
+  { nombre: 'Uniformes de colegio', uso: 'Gabardina, dril y telas para jardinera, pantalón y camisa, en los colores de cada colegio.', foto: fotoUniformes, alt: 'Niños con uniforme de colegio' },
+  { nombre: 'Trajes y sastrería', uso: 'Paños, dacrón y telas para saco y pantalón, para sastres y para ti.', foto: fotoSastreria, alt: 'Sastre midiendo un saco' },
+  { nombre: 'Cortinas a la medida', uso: 'Velos y telas para cortina. Tú eliges la tela y nosotros la confeccionamos.', foto: fotoCortinas, alt: 'Ventana con cortinas', pos: 'center 30%' },
+  { nombre: 'Toallas y lencería', uso: 'Toalla por metro, sábana, lino y lencería para el hogar.', foto: fotoToallas, alt: 'Toallas dobladas' },
+  { nombre: 'Satín y telas de fiesta', uso: 'Satín, organza, lame y lentejuela para eventos, danzas y disfraces.', foto: fotoSatin, alt: 'Tela de satín azul' },
+  { nombre: 'Confección y manualidades', uso: 'Antifluido, muselina, franela, piel de conejo y lo que tu proyecto necesite.', foto: fotoConfeccion, alt: 'Mesa de modista con tela y herramientas' },
 ]
 
-const TELAS = ['Toalla', 'Satín', 'Velo bordado', 'Yakar', 'Piel de conejo', 'Lino', 'Lencería', 'Antifluido', 'Organza', 'Muselina', 'Dacrón', 'Seda', 'Tul escarchado', 'Pana', 'Franela', 'Lame', 'Paño', 'Neopreno']
+const TELAS = ['Gabardina', 'Dril', 'Paño', 'Dacrón', 'Lino', 'Toalla', 'Satín', 'Velo bordado', 'Yakar', 'Antifluido', 'Piel de conejo', 'Lencería', 'Organza', 'Muselina', 'Seda', 'Tul', 'Franela', 'Lame']
+
+const PILARES = [
+  { t: 'Confianza', d: 'Más de 50 años y generaciones de clientes que vuelven.' },
+  { t: 'Variedad', d: 'Telas para colegio, sastrería, hogar, fiesta y temporada.' },
+  { t: 'Atención', d: 'Te ayudamos a escoger la tela y a calcular cuánta llevar.' },
+]
 
 const PASOS = [
   { n: '01', t: 'Nos cuentas el espacio', d: 'Medidas de la ventana, el estilo y la luz que quieres. Te mostramos telas en mano.' },
@@ -32,9 +46,8 @@ const PASOS = [
 ]
 
 const DATOS = [
-  { valor: 4000, prefijo: '+', sufijo: ' m', label: 'de tela cortados en agosto' },
-  { valor: 1500, prefijo: '+', sufijo: '', label: 'ventas atendidas en un mes' },
-  { valor: 20, prefijo: '+', sufijo: '', label: 'familias de tela en tienda' },
+  { valor: 50, prefijo: '+', sufijo: ' años', label: 'atendiendo familias, modistas, sastres y colegios' },
+  { valor: 20, prefijo: '+', sufijo: '', label: 'familias de tela en un solo lugar' },
   { valor: 6, prefijo: '', sufijo: ' días', label: 'a la semana abiertos para ti' },
 ]
 
@@ -47,20 +60,15 @@ export default function Landing() {
     () => {
       const mm = gsap.matchMedia()
       mm.add({ motion: '(prefers-reduced-motion: no-preference)', reduce: '(prefers-reduced-motion: reduce)' }, (ctx) => {
-        const reduce = ctx.conditions?.reduce
-
-        // Nav: fondo sólido al salir del hero
         ScrollTrigger.create({ start: 0, end: 'max', onUpdate: (self) => setScrolled(self.scroll() > 80) })
+        if (ctx.conditions?.reduce) return
 
-        if (reduce) return
-
-        // Hero: el texto lo anima SplitText; aquí acompañan eyebrow, subtítulo y botones
+        // Portada: el título lo anima SplitText; aquí entran la foto, el subtítulo y los botones
+        gsap.from('[data-hero-photo]', { scale: 1.08, duration: 2.4, ease: 'power2.out' })
         gsap.from('[data-hero-in]', { autoAlpha: 0, y: 16, duration: 0.9, ease: 'power3.out', stagger: 0.08, delay: 0.55 })
-        gsap.from('[data-hero-threads]', { autoAlpha: 0, duration: 2.2, ease: 'power2.out' })
-        // Parallax suave del hero al salir
-        gsap.to('[data-hero-content]', { yPercent: -12, autoAlpha: 0.2, ease: 'none', scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true } })
+        gsap.to('[data-hero-photo]', { yPercent: 12, ease: 'none', scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true } })
+        gsap.to('[data-hero-content]', { yPercent: -10, autoAlpha: 0.25, ease: 'none', scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true } })
 
-        // Bloques que entran al hacer scroll (en grupo, con stagger corto)
         gsap.set('[data-reveal]', { autoAlpha: 0, y: 28 })
         ScrollTrigger.batch('[data-reveal]', {
           start: 'top 88%',
@@ -68,15 +76,13 @@ export default function Landing() {
           onEnter: (els) => gsap.to(els, { autoAlpha: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.07, overwrite: true }),
         })
 
-        // Muestras: se "desenrollan" con clip-path
-        gsap.utils.toArray<HTMLElement>('[data-swatch]').forEach((el) => {
+        // Fotos: se descubren de abajo hacia arriba, como una tela que se desenrolla
+        gsap.utils.toArray<HTMLElement>('[data-photo]').forEach((el) => {
           gsap.fromTo(el, { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 1.1, ease: 'expo.out', scrollTrigger: { trigger: el, start: 'top 90%', once: true } })
         })
 
-        // Proceso: la línea de hilo se cose con el scroll
         gsap.fromTo('[data-thread-line]', { scaleY: 0 }, { scaleY: 1, ease: 'none', scrollTrigger: { trigger: '[data-pasos]', start: 'top 70%', end: 'bottom 60%', scrub: 0.6 } })
 
-        // Cifras: cuentan hacia arriba una sola vez
         gsap.utils.toArray<HTMLElement>('[data-count]').forEach((el) => {
           const end = Number(el.dataset.count)
           const obj = { v: 0 }
@@ -107,8 +113,9 @@ export default function Landing() {
             Textiles <em className="font-light">Myriam</em>
           </a>
           <div className="hidden items-center gap-8 text-sm font-medium md:flex">
-            <a href="#coleccion" className="opacity-80 transition-opacity hover:opacity-100">Colección</a>
-            <a href="#cortinas" className="opacity-80 transition-opacity hover:opacity-100">Cortinas a medida</a>
+            <a href="#nosotros" className="opacity-80 transition-opacity hover:opacity-100">Nosotros</a>
+            <a href="#telas" className="opacity-80 transition-opacity hover:opacity-100">Telas</a>
+            <a href="#cortinas" className="opacity-80 transition-opacity hover:opacity-100">Cortinas</a>
             <a href="#visitanos" className="opacity-80 transition-opacity hover:opacity-100">Visítanos</a>
           </div>
           <a
@@ -122,22 +129,21 @@ export default function Landing() {
         </nav>
       </header>
 
-      {/* ── HERO ──────────────────────────────────────── */}
+      {/* ── PORTADA ───────────────────────────────────── */}
       <section id="inicio" data-hero className="relative flex min-h-[100svh] items-end overflow-hidden bg-ink text-linen">
-        <div data-hero-threads className="absolute inset-0" aria-hidden>
-          <Threads color="#efe7da" accentColor="#c4553a" amplitude={1.4} distance={0.3} lineCount={70} speed={0.35} angle={18} opacity={0.75} brightness={1.15} fade={0.25} />
-        </div>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" aria-hidden />
-        <Noise opacity={0.09} fps={12} blendMode="overlay" className="pointer-events-none" />
+        <img data-hero-photo src={fotoHero} alt="" aria-hidden className="absolute inset-0 size-full object-cover will-change-transform" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink via-ink/70 to-ink/30" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink/80 via-ink/30 to-transparent" aria-hidden />
+        <Noise opacity={0.08} fps={12} blendMode="overlay" className="pointer-events-none" />
 
         <div data-hero-content className="relative mx-auto w-full max-w-7xl px-4 pt-32 pb-14 sm:px-8 sm:pb-20">
-          <p data-hero-in className="mb-6 flex items-center gap-3 text-xs font-semibold tracking-[0.22em] text-linen/70 uppercase">
-            <span className="h-px w-8 bg-madder" /> Telas por metro<span className="hidden sm:inline"> · Cortinas a la medida</span>
+          <p data-hero-in className="mb-6 flex items-center gap-3 text-xs font-semibold tracking-[0.22em] text-linen/80 uppercase">
+            <span className="h-px w-8 bg-madder" /> Más de 50 años en el oficio
           </p>
           <SplitText
-            text="Telas que visten tu casa."
+            text="Todo empieza con una buena tela."
             tag="h1"
-            className="max-w-4xl font-display text-[clamp(3rem,9vw,7.5rem)] [text-wrap:balance] leading-[0.95] font-light tracking-[-0.03em]"
+            className="max-w-4xl font-display text-[clamp(2.9rem,8.5vw,7rem)] leading-[0.95] font-light tracking-[-0.03em] [text-wrap:balance]"
             textAlign="left"
             splitType="words"
             effect="rise"
@@ -147,15 +153,15 @@ export default function Landing() {
             duration={1.1}
           />
           <div className="mt-10 flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
-            <p data-hero-in className="max-w-md text-base leading-relaxed text-linen/75 sm:text-lg">
-              Velos, satín, toallas, yakar y lencería medidos y cortados frente a ti. Y cortinas hechas a la medida de tu ventana.
+            <p data-hero-in className="max-w-md text-base leading-relaxed text-linen/80 sm:text-lg">
+              Telas para uniformes de colegio, trajes, cortinas, lencería y confección. Variedad, buen precio según la cantidad y una atención que te ayuda a calcular cuánto llevar.
             </p>
             <div data-hero-in className="flex flex-wrap gap-3">
               <a href={waLink()} className="press rounded-full bg-madder px-6 py-3.5 text-sm font-semibold text-linen hover:bg-madder-2">
                 Cotizar por WhatsApp
               </a>
-              <a href="#coleccion" className="press rounded-full border border-linen/25 px-6 py-3.5 text-sm font-semibold hover:bg-linen hover:text-ink">
-                Ver colección
+              <a href="#telas" className="press rounded-full border border-linen/30 px-6 py-3.5 text-sm font-semibold hover:bg-linen hover:text-ink">
+                Ver telas
               </a>
             </div>
           </div>
@@ -173,66 +179,97 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* ── MANIFIESTO ───────────────────────────────── */}
-      <section className="mx-auto max-w-5xl px-4 py-28 sm:px-8 sm:py-40">
-        <p data-reveal className="mb-8 text-xs font-semibold tracking-[0.22em] text-madder uppercase">La tienda</p>
-        <ScrollReveal
-          baseOpacity={0.12}
-          enableBlur
-          blurStrength={3}
-          baseRotation={0}
-          containerClassName="font-display font-light"
-          textClassName="text-[clamp(1.75rem,4vw,3.25rem)] leading-[1.15] font-light tracking-[-0.015em]"
-        >
-          Cada metro se mide, se corta y se entrega a mano. En Textiles Myriam ayudamos a vestir hogares, negocios y temporadas: desde una toalla hasta las cortinas de toda la casa.
-        </ScrollReveal>
+      {/* ── NOSOTROS ─────────────────────────────────── */}
+      <section id="nosotros" className="mx-auto grid max-w-7xl gap-12 px-4 py-24 sm:px-8 sm:py-32 lg:grid-cols-[1fr_1.05fr] lg:items-center lg:gap-20">
+        <div data-photo className="relative overflow-hidden rounded-3xl">
+          <img src={fotoHistoria} alt="Manos cortando tela sobre la mesa con el metro" loading="lazy" className="aspect-[4/5] w-full object-cover sm:aspect-[5/4] lg:aspect-[4/5]" />
+          <span className="absolute bottom-4 left-4 rounded-full bg-linen/90 px-3 py-1 text-[11px] font-semibold tracking-wide text-ink uppercase">Medimos y cortamos frente a ti</span>
+        </div>
+        <div>
+          <p data-reveal className="mb-6 text-xs font-semibold tracking-[0.22em] text-madder uppercase">Nuestra historia</p>
+          <h2 data-reveal className="font-display text-[clamp(2.25rem,4.6vw,3.9rem)] leading-[1] font-light tracking-tight [text-wrap:balance]">
+            Un almacén de confianza, atendido <em className="text-madder">con paciencia.</em>
+          </h2>
+          <p data-reveal className="mt-6 max-w-xl text-lg leading-relaxed text-ink-2">
+            Textiles Myriam lleva más de 50 años surtiendo a familias, modistas, sastres y colegios. Aquí encuentras variedad de telas, precios justos según la cantidad que lleves y alguien que te asesora metro a metro.
+          </p>
+          <dl className="mt-10 grid gap-6 sm:grid-cols-3">
+            {PILARES.map((p) => (
+              <div key={p.t} data-reveal className="border-t border-ink/15 pt-4">
+                <dt className="font-display text-xl tracking-tight">{p.t}</dt>
+                <dd className="mt-1.5 text-sm leading-relaxed text-muted">{p.d}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </section>
 
-      {/* ── COLECCIÓN ────────────────────────────────── */}
-      <section id="coleccion" className="border-t border-line bg-paper">
+      {/* ── FRASE ────────────────────────────────────── */}
+      <section className="border-y border-line bg-paper">
+        <div className="mx-auto max-w-5xl px-4 py-24 sm:px-8 sm:py-32">
+          <ScrollReveal
+            baseOpacity={0.12}
+            enableBlur
+            blurStrength={3}
+            baseRotation={0}
+            containerClassName="font-display font-light"
+            textClassName="text-[clamp(1.75rem,4vw,3.25rem)] leading-[1.15]! font-light! tracking-[-0.015em]"
+          >
+            El uniforme del primer día de colegio, el traje del grado, las cortinas de la casa nueva. Hace más de medio siglo que cada metro se mide, se corta y se entrega a mano.
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ── TELAS ────────────────────────────────────── */}
+      <section id="telas">
         <div className="mx-auto max-w-7xl px-4 py-24 sm:px-8 sm:py-32">
           <div className="mb-14 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <h2 data-reveal className="max-w-xl font-display text-[clamp(2.25rem,5vw,4rem)] leading-none font-light tracking-tight">
-              Lo que más se lleva <em className="text-madder">la gente</em>
+              Una tela para <em className="text-madder">cada ocasión</em>
             </h2>
             <p data-reveal className="max-w-sm text-sm leading-relaxed text-muted">
-              Ordenado según lo que nuestros clientes compraron en agosto. Precios de referencia por metro; pregunta por promociones y cortes por mayor.
+              El precio depende de cuánto lleves: entre más metros, mejor precio. Escríbenos y te cotizamos al instante.
             </p>
           </div>
-          <div className="grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {COLECCION.map((c) => (
-              <article key={c.nombre} data-reveal className={`group ${c.destacado ? 'sm:col-span-2 lg:row-span-1' : ''}`}>
-                <div data-swatch className={`swatch ${c.weave} mb-4 rounded-2xl ${c.destacado ? 'aspect-[16/10] sm:aspect-[2/1] lg:aspect-[16/7.6]' : 'aspect-[4/3]'}`}>
-                  {c.destacado && (
-                    <span className="absolute top-4 left-4 z-10 rounded-full bg-linen/90 px-3 py-1 text-[11px] font-semibold tracking-wide text-ink uppercase">
-                      La más pedida
-                    </span>
-                  )}
+              <article key={c.nombre} data-reveal className="group">
+                <div data-photo className="swatch mb-4 overflow-hidden rounded-2xl bg-linen-2">
+                  <img
+                    src={c.foto}
+                    alt={c.alt}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full object-cover transition-transform duration-700 ease-[var(--ease-out)] group-hover:scale-[1.03]"
+                    style={c.pos ? { objectPosition: c.pos } : undefined}
+                  />
                 </div>
-                <div className="flex items-baseline justify-between gap-4">
-                  <h3 className="font-display text-xl tracking-tight">{c.nombre}</h3>
-                  <p className="text-right text-sm font-semibold tabular whitespace-nowrap">
-                    {c.precio}
-                    <span className="ml-1 font-normal text-muted">/ {c.unidad}</span>
-                  </p>
-                </div>
-                <p className="mt-1 text-sm text-muted">{c.uso}</p>
+                <h3 className="font-display text-xl tracking-tight">{c.nombre}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted">{c.uso}</p>
               </article>
             ))}
+          </div>
+          <div data-reveal className="mt-14 flex flex-col items-start justify-between gap-4 rounded-2xl bg-ink px-6 py-6 text-linen sm:flex-row sm:items-center sm:px-8">
+            <p className="max-w-xl leading-relaxed text-linen/85">¿No ves la tela que buscas? Tenemos más de 20 familias de tela en el almacén. Pregúntanos por la que necesitas.</p>
+            <a href={waLink('Hola, estoy buscando una tela: ')} className="press shrink-0 rounded-full bg-linen px-5 py-3 text-sm font-semibold text-ink hover:bg-paper">
+              Preguntar por una tela
+            </a>
           </div>
         </div>
       </section>
 
       {/* ── CORTINAS A LA MEDIDA ─────────────────────── */}
       <section id="cortinas" className="relative overflow-hidden bg-ink text-linen">
-        <div className="mx-auto grid max-w-7xl gap-16 px-4 py-24 sm:px-8 sm:py-32 lg:grid-cols-[1fr_1.1fr]">
+        <div className="pointer-events-none absolute inset-0 opacity-50" aria-hidden>
+          <Threads color="#efe7da" accentColor="#c4553a" amplitude={1.1} distance={0.25} lineCount={50} speed={0.25} angle={-12} opacity={0.5} brightness={1} fade={0.4} />
+        </div>
+        <div className="relative mx-auto grid max-w-7xl gap-16 px-4 py-24 sm:px-8 sm:py-32 lg:grid-cols-[1fr_1.1fr]">
           <div className="lg:sticky lg:top-28 lg:self-start">
             <p data-reveal className="mb-6 text-xs font-semibold tracking-[0.22em] text-madder uppercase">Por encargo</p>
             <h2 data-reveal className="font-display text-[clamp(2.25rem,5vw,4.25rem)] leading-[0.98] font-light tracking-tight">
               Cortinas hechas para <em>tu</em> ventana.
             </h2>
             <p data-reveal className="mt-6 max-w-md leading-relaxed text-linen/70">
-              Es lo que más nos piden: casi una de cada cinco ventas de la tienda. Tú eliges la tela, nosotros medimos, cortamos y confeccionamos.
+              Es uno de los servicios que más nos piden. Tú eliges la tela; nosotros medimos, cortamos y confeccionamos.
             </p>
             <a data-reveal href={waLink('Hola, quiero cotizar unas cortinas a la medida. ')} className="press mt-10 inline-flex rounded-full bg-linen px-6 py-3.5 text-sm font-semibold text-ink hover:bg-paper">
               Cotizar mis cortinas
@@ -257,30 +294,32 @@ export default function Landing() {
 
       {/* ── CIFRAS ───────────────────────────────────── */}
       <section className="border-b border-line">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-px bg-line lg:grid-cols-4">
+        <div className="mx-auto grid max-w-7xl gap-px bg-line sm:grid-cols-3">
           {DATOS.map((d) => (
             <div key={d.label} data-reveal className="bg-linen px-4 py-12 sm:px-8 sm:py-16">
-              <p className="font-display text-[clamp(2.25rem,5vw,4.25rem)] leading-none font-light tracking-tight whitespace-nowrap tabular">
+              <p className="font-display text-[clamp(2.75rem,6vw,4.75rem)] leading-none font-light tracking-tight whitespace-nowrap tabular">
                 {d.prefijo}
                 <span data-count={d.valor}>{d.valor.toLocaleString('es-CO')}</span>
-                <span className="text-[0.6em] text-madder">{d.sufijo}</span>
+                <span className="text-[0.55em] text-madder">{d.sufijo}</span>
               </p>
-              <p className="mt-3 max-w-[14rem] text-sm text-muted">{d.label}</p>
+              <p className="mt-3 max-w-[16rem] text-sm text-muted">{d.label}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── VISÍTANOS ────────────────────────────────── */}
-      <section id="visitanos" className="mx-auto max-w-7xl px-4 py-24 sm:px-8 sm:py-32">
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-end">
+      <section id="visitanos" className="relative overflow-hidden bg-ink text-linen">
+        <img data-photo src={fotoBodega} alt="Rollos de tela en el almacén" loading="lazy" className="absolute inset-0 size-full object-cover opacity-40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/80 to-ink/30" aria-hidden />
+        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-24 sm:px-8 sm:py-32 lg:grid-cols-2 lg:items-end">
           <h2 data-reveal className="font-display text-[clamp(2.5rem,6vw,5rem)] leading-[0.95] font-light tracking-tight">
             Ven a tocar <br />
             <em className="text-madder">las telas.</em>
           </h2>
           <div data-reveal className="grid gap-8 sm:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold tracking-[0.18em] text-muted uppercase">Dónde</p>
+              <p className="text-xs font-semibold tracking-[0.18em] text-linen/60 uppercase">Dónde</p>
               <p className="mt-2 leading-relaxed">
                 {TIENDA.direccion}
                 <br />
@@ -288,10 +327,10 @@ export default function Landing() {
               </p>
             </div>
             <div>
-              <p className="text-xs font-semibold tracking-[0.18em] text-muted uppercase">Cuándo</p>
+              <p className="text-xs font-semibold tracking-[0.18em] text-linen/60 uppercase">Cuándo</p>
               <p className="mt-2 leading-relaxed">{TIENDA.horario}</p>
             </div>
-            <a href={waLink()} className="press col-span-full inline-flex w-fit rounded-full bg-ink px-6 py-3.5 text-sm font-semibold text-linen hover:bg-ink-2">
+            <a href={waLink()} className="press col-span-full inline-flex w-fit rounded-full bg-madder px-6 py-3.5 text-sm font-semibold text-linen hover:bg-madder-2">
               Escríbenos por WhatsApp
             </a>
           </div>
@@ -301,7 +340,9 @@ export default function Landing() {
       {/* ── FOOTER ───────────────────────────────────── */}
       <footer className="border-t border-line" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p>© {new Date().getFullYear()} Textiles Myriam</p>
+          <p>
+            © {new Date().getFullYear()} Textiles Myriam · Más de 50 años <span className="mx-2 text-line">|</span> Fotos: Pexels
+          </p>
           <a href="#caja" className="font-medium text-ink underline decoration-line underline-offset-4 hover:decoration-madder">
             Acceso equipo → Caja
           </a>

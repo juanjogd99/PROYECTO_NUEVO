@@ -41,7 +41,7 @@ export default function Balance({ rows, periodo }: { rows: Movimiento[]; periodo
         tono: 'alerta',
         titulo: `Los egresos registrados son solo el ${pct(ratioEgr)} de los ingresos`,
         texto:
-          'Faltan las compras de mercancía, la nómina, el arriendo y los servicios. Mientras no estén aquí, el saldo es caja recibida, no utilidad. Registrarlos convierte este tablero en un estado de resultados real.',
+          'Faltan las compras de mercancía, la nómina, el arriendo y los servicios. Mientras no estén, el saldo es caja recibida, no utilidad. Regístralos en Mis cuentas para ver la utilidad real.',
       })
     if (r.efectivo > 0.6)
       out.push({

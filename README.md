@@ -3,9 +3,13 @@
 Página web + caja conectada a Google Sheets.
 
 - **Página de presentación** (`/`): la tienda, la colección con precios reales de referencia, cortinas a la medida, contacto.
-- **Caja** (`/#caja`): entrar con PIN, registrar ingresos y egresos, ver el **balance** y ordenar/filtrar todos los movimientos. Cada cambio se guarda al instante en el Google Sheet, y lo que se edite directamente en el Sheet aparece en la Caja en menos de 30 segundos.
+- **Caja** (`/#caja`), con dos claves:
+  - **Equipo** (`PIN_EQUIPO`): registra las ventas y gastos **de hoy**, ve el cuadre del día y consulta la **lista de precios**. La app calcula el precio sola (detal o por mayor según la cantidad).
+  - **Dueña** (`PIN_DUENA`): todo lo anterior más el **Balance**, todos los movimientos (con edición), **Mis cuentas** (proveedores, nómina, arriendo, retiros: privado) y la edición de **precios**.
 
-Sin conectar el Sheet, la Caja funciona en **modo demostración** (PIN `1234`) con **datos de ejemplo inventados**.
+  Cada cambio se guarda al instante en el Google Sheet, y lo que se edite directamente en el Sheet aparece en la Caja en menos de 30 segundos.
+
+Sin conectar el Sheet, la Caja funciona en **modo demostración** con **datos de ejemplo inventados**: PIN `1234` entra como equipo y `2026` como dueña.
 
 **Privacidad:** el código es público, pero las ventas reales **no están en este repositorio**: viven solo en el Google Sheet y la página las pide con el PIN.
 
@@ -25,7 +29,7 @@ apps-script/Code.gs  El "puente" que va dentro del Google Sheet
 > Usa la plantilla **Textiles_Myriam_Caja.xlsx** (se entrega aparte, no está en el repositorio porque tiene las ventas reales). Trae MOVIMIENTOS con agosto cargado, BALANCE con fórmulas y menús desplegables. Súbela a Drive y guárdala como Hoja de cálculo de Google.
 
 1. Abre el Sheet **VENTAS AGOSTO** → **Extensiones → Apps Script**.
-2. Pega el contenido de [`apps-script/Code.gs`](apps-script/Code.gs). **Cambia el PIN** (línea 15). Guarda.
+2. Pega el contenido de [`apps-script/Code.gs`](apps-script/Code.gs). **Cambia los dos PIN**: `PIN_EQUIPO` (la caja) y `PIN_DUENA` (solo la dueña, distinto). Guarda.
 3. Elige la función **`instalar`** → **Ejecutar** → acepta los permisos.
    Se crean dos pestañas nuevas: **MOVIMIENTOS** (los datos) y **BALANCE** (fórmulas que se actualizan solas). Las pestañas Semana 1…4 no se tocan.
 4. **Implementar → Nueva implementación →** tipo **Aplicación web**
@@ -76,4 +80,16 @@ Resultado: 1.557 movimientos del 3 al 31 de agosto, cargados en la plantilla. La
 
 ## Seguridad
 
-El PIN protege la lectura y escritura del Sheet desde la web. Es adecuado para un equipo pequeño; no es un sistema bancario. Cambia el PIN cuando alguien deje el equipo (en `Code.gs` → guardar → nueva versión de la implementación).
+El Apps Script decide qué entrega a cada PIN, así que la privacidad no depende de ocultar botones:
+
+| | Equipo | Dueña |
+|---|---|---|
+| Movimientos de hoy (ver, registrar, corregir) | ✅ | ✅ |
+| Movimientos de otros días | ❌ ni siquiera los recibe | ✅ ver y editar |
+| Balance | ❌ | ✅ |
+| Cuentas privadas (pestaña PRIVADO) | ❌ ni siquiera las recibe | ✅ |
+| Lista de precios | 👁️ solo consultar | ✅ editar |
+
+- Comparte el Google Sheet **solo con la dueña**; el equipo entra por la página.
+- Lo de la dueña no se guarda en el navegador, así que no queda en el computador de la tienda al pulsar **Salir**.
+- Es adecuado para un almacén; no es un sistema bancario. Cambia `PIN_EQUIPO` cuando alguien deje el equipo (en `Code.gs` → guardar → **Implementar → Administrar implementaciones → Editar → Nueva versión**).
