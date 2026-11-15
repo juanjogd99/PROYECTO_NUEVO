@@ -1,15 +1,24 @@
-import type { Movimiento } from './types'
+import type { Caja, Movimiento, Precio, Rol, Variante } from './types'
+import { normalizarVariante } from './catalogo'
+import { normalizarPrecio } from './precios'
 
 /**
  * Cliente del Web App de Google Apps Script (ver /apps-script/Code.gs).
  *
- * - GET  ?action=list&pin=…            → { ok, rows }
- * - POST {action:'upsert', pin, rows}   → { ok, saved }
- * - POST {action:'delete', pin, ids}    → { ok, deleted }
- * - POST {action:'ping', pin}           → { ok }
+ * GET  ?action=list&pin=…                    → { ok, rol, rows, privados?, precios }
+ * POST {action:'ping', pin}                  → { ok, rol }
+ * POST {action:'upsert', pin, hoja?, rows}   → { ok, saved }      hoja: 'movimientos' | 'privado'
+ * POST {action:'delete', pin, hoja?, ids}    → { ok, deleted }
+ * POST {action:'precios', pin, precios}      → { ok, saved }      (solo la dueña)
+ * POST {action:'apertura'|'cierre', pin, caja} → { ok, caja }     abrir / cerrar la caja de hoy
+ * POST {action:'reabrir', pin, fecha}        → { ok, caja }      (solo la dueña)
  *
+ * El servidor decide qué ve cada PIN: el equipo solo recibe los movimientos de hoy
+ * y nunca recibe la pestaña PRIVADO.
  * El POST va como text/plain para evitar el "preflight" CORS, que Apps Script no responde.
  */
+
+export type Hoja = 'movimientos' | 'privado'
 
 const URL_KEY = 'tm.sheetsUrl'
 
@@ -33,11 +42,20 @@ export function setSheetsUrl(url: string) {
 }
 
 export class SheetsError extends Error {
-  kind: 'auth' | 'network' | 'server'
-  constructor(message: string, kind: 'auth' | 'network' | 'server') {
+  kind: 'auth' | 'network' | 'server' | 'permiso'
+  constructor(message: string, kind: 'auth' | 'network' | 'server' | 'permiso') {
     super(message)
     this.kind = kind
   }
+}
+
+const MENSAJES: Record<string, [string, SheetsError['kind']]> = {
+  PIN_INVALIDO: ['PIN incorrecto', 'auth'],
+  SIN_PERMISO: ['Ese cambio solo lo puede hacer la dueña', 'permiso'],
+  SOLO_HOY: ['Desde la caja solo se pueden registrar o corregir movimientos de hoy', 'permiso'],
+  CAJA_SIN_ABRIR: ['Primero hay que abrir la caja de hoy', 'permiso'],
+  CAJA_CERRADA: ['La caja de hoy ya está cerrada', 'permiso'],
+  CAJA_YA_ABIERTA: ['La caja de hoy ya se abrió', 'permiso'],
 }
 
 async function parse(res: Response) {
@@ -48,8 +66,8 @@ async function parse(res: Response) {
     throw new SheetsError('El Sheet no respondió con datos válidos. ¿La URL es la del Web App (/exec)?', 'server')
   }
   if (!data.ok) {
-    const auth = data.error === 'PIN_INVALIDO'
-    throw new SheetsError(auth ? 'PIN incorrecto' : String(data.error ?? 'Error del Sheet'), auth ? 'auth' : 'server')
+    const [msg, kind] = MENSAJES[String(data.error)] ?? [String(data.error ?? 'Error del Sheet'), 'server']
+    throw new SheetsError(msg, kind)
   }
   return data
 }
@@ -64,17 +82,62 @@ async function call(url: string, init?: RequestInit) {
   return parse(res)
 }
 
-export async function listar(url: string, pin: string): Promise<Movimiento[]> {
-  const data = await call(`${url}?action=list&pin=${encodeURIComponent(pin)}&t=${Date.now()}`)
-  return (data.rows as Movimiento[]).map(normalizar)
+export interface Datos {
+  rol: Rol
+  rows: Movimiento[]
+  privados: Movimiento[]
+  precios: Precio[]
+  cajas: Caja[]
+  catalogo: Variante[]
+}
+
+export async function listar(url: string, pin: string): Promise<Datos> {
+  const d = await call(`${url}?action=list&pin=${encodeURIComponent(pin)}&t=${Date.now()}`)
+  return {
+    rol: d.rol === 'duena' ? 'duena' : 'equipo',
+    rows: ((d.rows as Movimiento[]) ?? []).map(normalizar),
+    privados: ((d.privados as Movimiento[]) ?? []).map(normalizar),
+    precios: ((d.precios as Precio[]) ?? []).map(normalizarPrecio).filter((p) => p.producto),
+    cajas: ((d.cajas as Caja[]) ?? []).map(normalizarCaja),
+    catalogo: ((d.catalogo as Variante[]) ?? []).map(normalizarVariante).filter((v) => v.tela),
+  }
 }
 
 const post = (url: string, body: object) =>
   call(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
 
-export const ping = (url: string, pin: string) => post(url, { action: 'ping', pin })
-export const guardar = (url: string, pin: string, rows: Movimiento[]) => post(url, { action: 'upsert', pin, rows })
-export const borrar = (url: string, pin: string, ids: string[]) => post(url, { action: 'delete', pin, ids })
+export const ping = async (url: string, pin: string): Promise<Rol> => ((await post(url, { action: 'ping', pin })).rol === 'duena' ? 'duena' : 'equipo')
+export const guardar = (url: string, pin: string, rows: Movimiento[], hoja: Hoja = 'movimientos') => post(url, { action: 'upsert', pin, hoja, rows })
+export const borrar = (url: string, pin: string, ids: string[], hoja: Hoja = 'movimientos') => post(url, { action: 'delete', pin, hoja, ids })
+export const guardarPrecios = (url: string, pin: string, precios: Precio[]) => post(url, { action: 'precios', pin, precios })
+export const guardarCatalogo = (url: string, pin: string, catalogo: Variante[]) => post(url, { action: 'catalogo', pin, catalogo })
+/** Lectura pública (sin PIN) para la página: solo telas, modelos, colores y si hay. */
+export async function catalogoPublico(url: string): Promise<Variante[]> {
+  const d = await call(`${url}?action=catalogo&t=${Date.now()}`)
+  return ((d.catalogo as Variante[]) ?? []).map(normalizarVariante).filter((v) => v.tela)
+}
+export const abrirCaja = (url: string, pin: string, caja: Pick<Caja, 'base' | 'abrio' | 'nota'>) => post(url, { action: 'apertura', pin, caja })
+export const cerrarCaja = (url: string, pin: string, caja: Pick<Caja, 'contado' | 'cerro' | 'nota'>) => post(url, { action: 'cierre', pin, caja })
+export const reabrirCaja = (url: string, pin: string, fecha: string) => post(url, { action: 'reabrir', pin, fecha })
+
+export function normalizarCaja(c: Partial<Caja>): Caja {
+  const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0)
+  return {
+    fecha: String(c.fecha ?? '').slice(0, 10),
+    estado: c.estado === 'cerrada' ? 'cerrada' : 'abierta',
+    base: n(c.base),
+    abrio: String(c.abrio ?? ''),
+    apertura: String(c.apertura ?? ''),
+    ventasEfectivo: n(c.ventasEfectivo),
+    gastosEfectivo: n(c.gastosEfectivo),
+    esperado: n(c.esperado),
+    contado: n(c.contado),
+    diferencia: n(c.diferencia),
+    cerro: String(c.cerro ?? ''),
+    cierre: String(c.cierre ?? ''),
+    nota: String(c.nota ?? ''),
+  }
+}
 
 /** Las filas editadas a mano en el Sheet pueden traer números como texto o celdas vacías. */
 export function normalizar(r: Partial<Movimiento>): Movimiento {

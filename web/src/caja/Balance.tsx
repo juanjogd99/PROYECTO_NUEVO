@@ -41,7 +41,7 @@ export default function Balance({ rows, periodo }: { rows: Movimiento[]; periodo
         tono: 'alerta',
         titulo: `Los egresos registrados son solo el ${pct(ratioEgr)} de los ingresos`,
         texto:
-          'Faltan las compras de mercancía, la nómina, el arriendo y los servicios. Mientras no estén aquí, el saldo es caja recibida, no utilidad. Registrarlos convierte este tablero en un estado de resultados real.',
+          'Faltan las compras de mercancía, la nómina, el arriendo y los servicios. Mientras no estén, el saldo es caja recibida, no utilidad. Regístralos en Mis cuentas para ver la utilidad real.',
       })
     if (r.efectivo > 0.6)
       out.push({
@@ -81,7 +81,13 @@ export default function Balance({ rows, periodo }: { rows: Movimiento[]; periodo
     return out
   }, [r])
 
-  if (!rows.length) return <p className="py-20 text-center text-muted">No hay movimientos en este periodo.</p>
+  if (!rows.length)
+    return (
+      <div className="rounded-2xl border border-dashed border-line px-6 py-16 text-center">
+        <p className="font-display text-2xl tracking-tight">Todo en cero</p>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted">Todavía no hay ventas ni gastos en este periodo. Cuando se abra la caja y se registren movimientos, aquí aparecen el balance, los gráficos y la lectura financiera.</p>
+      </div>
+    )
 
   return (
     <div className="space-y-5">

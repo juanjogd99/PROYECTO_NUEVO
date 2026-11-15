@@ -101,11 +101,3 @@ export function resumir(rows: Movimiento[]): Resumen {
     pedidos: ing.filter((r) => r.categoria.startsWith('Abono')).reduce((s, r) => s + r.total, 0),
   }
 }
-
-/** Semana del mes (1–5) con semanas que empiezan en lunes, como en la hoja original. */
-export function semanaDelMes(iso: string) {
-  const d = parseDate(iso)
-  const first = new Date(d.getFullYear(), d.getMonth(), 1)
-  const offset = (first.getDay() + 6) % 7
-  return Math.floor((d.getDate() + offset - 1) / 7) + 1
-}

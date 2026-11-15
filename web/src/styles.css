@@ -18,6 +18,7 @@
   --color-sage: #5f6f52;
   --color-good: #2f6b4a;
   --color-bad: #a8361f;
+  --color-warn: #a86a12;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -110,7 +111,7 @@ html.lenis body {
   }
 }
 
-/* ── Muestras de tela generadas con CSS (sin fotos) ─────────── */
+/* ── Brillo de tela sobre las fotos ──────────────────────────── */
 .swatch {
   position: relative;
   overflow: hidden;
@@ -131,40 +132,6 @@ html.lenis body {
     transform: translateX(60%);
   }
 }
-.weave-toalla {
-  background-color: #e9dfcf;
-  background-image: radial-gradient(circle at 2px 2px, rgb(120 98 70 / 0.35) 1.2px, transparent 1.6px);
-  background-size: 6px 6px;
-}
-.weave-cortina {
-  background-color: #8f3420;
-  background-image: repeating-linear-gradient(90deg, rgb(0 0 0 / 0.18) 0 2px, transparent 2px 22px, rgb(255 255 255 / 0.08) 22px 26px, transparent 26px 44px);
-}
-.weave-satin {
-  background: linear-gradient(160deg, #e8d6c3 0%, #f7ece0 35%, #d9bfa6 60%, #f3e3d2 85%);
-}
-.weave-velo {
-  background-color: #f6f1ea;
-  background-image: repeating-linear-gradient(0deg, rgb(47 58 99 / 0.09) 0 1px, transparent 1px 7px), repeating-linear-gradient(90deg, rgb(47 58 99 / 0.09) 0 1px, transparent 1px 7px);
-}
-.weave-lino {
-  background-color: #c9b99c;
-  background-image: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.12) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgb(60 45 25 / 0.12) 0 1px, transparent 1px 4px);
-}
-.weave-piel {
-  background: radial-gradient(ellipse at 30% 20%, #faf6f0, #ddd2c2 70%);
-}
-.weave-navidad {
-  background-color: #2f4a3a;
-  background-image: linear-gradient(45deg, rgb(176 68 43 / 0.55) 25%, transparent 25%, transparent 75%, rgb(176 68 43 / 0.55) 75%), linear-gradient(45deg, rgb(176 68 43 / 0.55) 25%, transparent 25%, transparent 75%, rgb(176 68 43 / 0.55) 75%);
-  background-size: 28px 28px;
-  background-position: 0 0, 14px 14px;
-}
-.weave-yakar {
-  background-color: #2f3a63;
-  background-image: repeating-linear-gradient(45deg, rgb(255 255 255 / 0.1) 0 3px, transparent 3px 9px), repeating-linear-gradient(-45deg, rgb(0 0 0 / 0.15) 0 3px, transparent 3px 9px);
-}
-
 /* ── Reduced motion: quitar desplazamientos, conservar opacidad ─ */
 @media (prefers-reduced-motion: reduce) {
   .marquee-track {
